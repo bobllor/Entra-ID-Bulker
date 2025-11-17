@@ -217,7 +217,7 @@ class API:
     
     def delete_opco_key(self, key: str) -> dict[str, Any]:
         '''Deletes a key from the operating company Reader.'''
-        res: dict[str, Any] = self.opco.delete(key)
+        res: dict[str, Any] = self.opco.delete(key.lower())
 
         return res
     

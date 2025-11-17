@@ -8,6 +8,7 @@ class Reader:
     def __init__(self, path: Path | str, *, 
         defaults: dict[str, Any] = None, 
         logger: Log = None,
+        update_only: bool = False,
         is_test: bool = False):
         '''Used to support CRUD operations on JSON data for the program.
         
@@ -23,6 +24,9 @@ class Reader:
             logger: Log, default None
                 The logger, by default it is None- creating a new instance with no special features.
             
+            update_only: bool, default False
+                Disables insertion and deletion in the Reader. By default it is false.
+            
             is_test: bool, default False
                 Boolean to indicate if the Reader is a test instance or not.
         '''
@@ -32,14 +36,22 @@ class Reader:
         self._name: str = Path(self.path).name
 
         self.logger: Log = logger or Log()
+        self.update_only: bool = update_only
         self._is_test: bool = is_test
 
         self._mkfiles()
 
         self._content: dict[str, Any] = self.read()
+
+        # ensures all keys are lowercase.
+        lowered_content: dict[str, Any] = self._lower_keys()
+        if self._content != lowered_content:
+            self._content = lowered_content
+            self.write(self._content)
+
         self._defaults = defaults
         if defaults:
-            self.validate_defaults(defaults)
+            self._validate_defaults(defaults)
     
     def get_content(self) -> dict[str, Any]:
         '''Returns the dictionary contents.'''
@@ -64,6 +76,10 @@ class Reader:
 
         It returns a response in the form of a dictionary.
         '''
+        update_res: dict[str, Any] = self._update_only_check()
+        if update_res["status"] == "error":
+            return update_res
+
         if key in self._content:
             self.logger.warning(f"Insertion failed: key {key} already exists")
             return utils.generate_response(status="error", message="Failed to insert, key already exists")
@@ -77,6 +93,10 @@ class Reader:
     
     def insert_many(self, data: dict[str, Any]) -> dict[str, Any]:
         '''Inserts multiple key-value pairs into the structure.''' 
+        update_res: dict[str, Any] = self._update_only_check()
+        if update_res["status"] == "error":
+            return update_res
+
         success_ops: int = 0
         for key, value in data.items():
             if key in self._content:
@@ -178,6 +198,10 @@ class Reader:
     def insert_update_many(self, data: dict[str, Any]) -> dict[str, Any]:
         '''Inserts contents of a dictionary into the Reader. If the key aleady exists,
         then it will update the Reader instead.'''
+        update_res: dict[str, Any] = self._update_only_check()
+        if update_res["status"] == "error":
+            return update_res
+
         self.logger.debug(f"Given data: {data}")
 
         for key, val in data.items():
@@ -206,12 +230,16 @@ class Reader:
     
     def delete(self, key: str) -> dict[str, Any]:
         '''Deletes a key from the file.'''
+        update_res: dict[str, Any] = self._update_only_check()
+        if update_res["status"] == "error":
+            return update_res
+
         if key in self._defaults and not self._is_test:
             self.logger.warning(f"Default key {key} was attempted to be deleted")
-            return utils.generate_response(status="error", message="Failed to delete key", status_code=400)
+            return utils.generate_response(status="error", message="Failed to delete key")
         elif key not in self._content:
             self.logger.info(f"Key {key} does not exist in {self._content} for removal")
-            return utils.generate_response(status="error", message="Unable to find key", status_code=500)
+            return utils.generate_response(status="error", message="Unable to find key")
         
         del self._content[key]
         self.write(self._content)
@@ -260,8 +288,35 @@ class Reader:
                 file.write("{}")
 
             self.logger.info(f"Created JSON file: {self.path}")
+        
+    def _lower_keys(self, new_content: dict[str, Any] = None, content: dict[str, Any] = None):
+        '''Recursively lowercases all the keys, if any are not lowercase. Used to normalize key usage.
+        
+        Parameters
+        ----------
+            new_content: dict[str, Any], default None
+                The new lowercased content. This is expected to be an empty dictionary, which
+                by default is None and handled in the method.
+
+            content: dict[str, Any], default None
+                The content read from the file. By default it is None, using the read file.
+        '''
+        if content is None:
+            content = self._content
+        if new_content is None:
+            new_content = {}
+
+        for key in content:
+            content_val: Any = content[key]
+
+            new_content[key.lower()] = content_val
+
+            if isinstance(content_val, dict):
+                self._lower_keys(new_content, content=content_val)
+        
+        return new_content
     
-    def validate_defaults(self, data_to_check: dict[str, Any]):
+    def _validate_defaults(self, data_to_check: dict[str, Any]):
         '''Validates a JSON file for any incorrect values or missing keys from
         a given data dictionary. 
 
@@ -283,3 +338,14 @@ class Reader:
         
         if has_corrected:
             self.write(self._content)
+    
+    def _update_only_check(self) -> dict[str, Any]:
+        '''Checks if the Reader is update only before an insertion/deletion action.
+        
+        It returns a response of an error message if it fails.
+        '''
+        if self.update_only:
+            self.logger.info(f"Reader {self._name} attempted an insertion/deletion, it is not allowed")
+            return utils.generate_response("error", message=f"Cannot insert or delete Reader {self._name}")
+        
+        return utils.generate_response(message="Can be updated")
