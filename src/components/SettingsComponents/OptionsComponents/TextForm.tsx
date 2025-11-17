@@ -1,21 +1,58 @@
-import { JSX } from "react";
+import { JSX, useState } from "react";
 import OptionBase from "./OptionBase";
+import Button from "../../ui/Button";
+import { SettingsData, useSettingsContext } from "../../../context/SettingsContext";
+import { updateSetting } from "../../../pywebviewFunctions";
 
 const title: string = "Text Template";
+const tooltipText: string = "Settings for the text output for each row.";
 
 export default function TextForm(): JSX.Element{
     return (
         <>
-            <OptionBase title={title}/>
+            <OptionBase title={title} tooltipText={tooltipText} 
+            element={<TextField />}/>
         </>
     )
 }
 
 function TextField(): JSX.Element{
+    const {apiSettings, setApiSettings} = useSettingsContext();
+
+    const [textValue, setTextValue] = useState<string>(apiSettings.template.text);
+
     return (
         <>
-            <input 
-            type="text" /> 
+            <form
+            className="p-2"
+            onSubmit={e => {
+                    e.preventDefault();
+
+                    textSubmission(textValue, setApiSettings);
+                }}>
+                <div className="flex flex-col items-center justify-center gap-2">
+                    <textarea
+                    maxLength={500}
+                    onChange={(e) => {
+                        const value: string = e.currentTarget.value;
+
+                        setTextValue(value);
+                    }}
+                    value={textValue} 
+                    className="relative bg-white resize-none rounded-xl border-1 p-2 w-[90%] h-60 outline-none">
+                    </textarea>
+                    <span className={`${textValue.length == 500 && "text-red-500"}`}>{textValue.length}/500</span>
+                    <Button text="Submit" type="submit"/>
+                </div>
+            </form>
         </>
     )
+}
+
+async function textSubmission(text: string, setApiSettings: SettingsData["setApiSettings"]): Promise<void>{
+    const status = await updateSetting("text", text, "template");
+
+    if(status){
+        setApiSettings(prev => ({...prev, template: {...prev.template, text: text}}));
+    }
 }

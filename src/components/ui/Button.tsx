@@ -23,6 +23,7 @@ export default function Button(
                     func();
                 }
             }}
+            tabIndex={-1}
             className={`px-${paddingX} py-${paddingY} rounded-xl ${bg} text-white hover:${bgHover}`}
             type={type}>
                 {text}
