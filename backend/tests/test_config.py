@@ -98,3 +98,15 @@ def test_update_search(reader: Reader):
 
     assert nest2[key_to_edit] is None and nest3[key_to_edit] is None \
         and nest4[key_to_edit] == value
+
+def test_get_search(reader: Reader):
+    key_to_edit: str = "padding"
+    value: str = "a long value here"
+    parent_key: str = "nest4"
+
+    reader.insert("nest1", 
+        {"nest2": {key_to_edit: None, "nest3": {key_to_edit: None, parent_key: {key_to_edit: value}}}})
+
+    new_value: str = reader.get_search(key_to_edit, parent_key=parent_key)
+
+    assert value == new_value

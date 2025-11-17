@@ -275,6 +275,45 @@ class Reader:
                     return value
         
         return None
+    
+    def get_search(self, key: str, *, data: dict[str, Any] = None, parent_key: str = None) -> Any:
+        '''Gets the value stored at the key. This uses a parent key to target a specific section
+        in case that there are multiple nested keys of the same name.
+        
+        Parameters
+        ----------
+            key: str
+                The key that is being searched for.
+            
+            data: dict[str, Any], default None
+                The data dictionary. When calling the method, **do not pass data** into this
+                argument. The only acceptable data is the **`Reader` content**, which by default
+                is set to the content if it is `None`.
+            
+            parent_key: str, default None
+                The parent key to target. This is used to target a certain section within the Reader,
+                used for targeting a key that can possibly be found in other sections. By default it is None,
+                and will be treated as a normal get() if None.
+        '''
+        if data is None:
+            data = self._content
+            
+        value: Any = None
+        if parent_key is None:
+            value = self.get(key, data=data) 
+        else:
+            for d_key, d_val in data.items():
+                if isinstance(d_val, dict):
+                    # consume the parent key if the parent key is found
+                    if d_key == parent_key:
+                        parent_key = None
+
+                    value = self.get_search(key, data=d_val, parent_key=parent_key)
+
+                    if value is not None:
+                        return value
+
+        return value
 
     def _mkfiles(self):
         '''Creates the file, including all directories. If they exist, then this does nothing.'''
@@ -309,10 +348,10 @@ class Reader:
         for key in content:
             content_val: Any = content[key]
 
-            new_content[key.lower()] = content_val
-
             if isinstance(content_val, dict):
-                self._lower_keys(new_content, content=content_val)
+                content_val = self._lower_keys(None, content=content_val)
+
+            new_content[key.lower()] = content_val
         
         return new_content
     
