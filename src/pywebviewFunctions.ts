@@ -11,3 +11,20 @@ export async function getReaderContent(reader: ReaderType): Promise<Record<strin
 
     return res;
 }
+
+/**
+ * Recursively updates a key with a value in a Reader
+ * @param reader The Reader type to target
+ * @param key The key which value is being updated
+ * @param value Any value for the key
+ * @param parent Ensures the update occurs in the parent key, only required if multiple keys exist in different nest levels
+ */
+export async function updateSetting(key: string, value: any, parent?: string): Promise<boolean>{
+    const res: Record<string, string> = await window.pywebview.api.update_setting(key, value, parent);
+
+    if(res["status"] == "success"){
+        return true;
+    }
+
+    return false;
+}
