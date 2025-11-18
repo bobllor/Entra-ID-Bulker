@@ -88,10 +88,11 @@ export default function OpcoMapping(): JSX.Element{
                         ))}
                         <input type="submit"/>
                     </form>
-                    <div className="flex">
+                    <div className="flex gap-1">
                         {/* Table editing logic */}
-                        <div className="p-1 w-20 hover:bg-gray-500 flex items-center justify-center"
-                        title={!isEditable ? "Edit table" : "Confirm changes"}
+                        <div className="p-1 w-20 ml-1 hover:bg-gray-500 flex items-center justify-center
+                        rounded-tl-xl rounded-tr-xl border-l-1 border-r-1 border-t-1"
+                        title={!isEditable ? "Edit table" : "Confirm"}
                         onClick={() => {
                                 if(isEditable){
                                     updateOpcoMapping(opcoOptions, baseOpcoRef).then(status => {
@@ -114,15 +115,16 @@ export default function OpcoMapping(): JSX.Element{
                                 setIsEditable(prev => !prev);
                                 setResetDefault(true);
                             }}
-                            className="flex items-center justify-center hover:bg-gray-500 w-20"
+                            className="flex items-center justify-center hover:bg-gray-500 w-20
+                            rounded-tl-xl rounded-tr-xl border-l-1 border-r-1 border-t-1"
                             title="Cancel">
                                 <FaTimes color="red" />
                             </div>
                         }
                     </div>
                     {/* The table */}
-                    <table className="w-full text-center border-1 table-fixed">
-                        <thead>
+                    <table className="w-full text-center table-fixed">
+                        <thead className="border-t-1 border-b-1">
                             <tr>
                                 <th>Operating Company</th>
                                 <th>Domain</th>

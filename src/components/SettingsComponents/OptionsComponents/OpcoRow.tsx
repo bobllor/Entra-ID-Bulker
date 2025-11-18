@@ -32,10 +32,12 @@ export default function OpcoRow(
     return (
         <>
             <tr
+            className="border-b-1 hover:bg-blue-300/40"
             ref={rowRef}>
                 <td>
                     <input 
-                    className="text-ellipsis"
+                    className={`text-ellipsis ${opco.opcoKey == DEFAULT_KEY && isEditable ? "cursor-not-allowed" : ""}
+                    outline-none p-1`}
                     type="text"
                     name="key"
                     readOnly={inputEditable}
@@ -48,6 +50,7 @@ export default function OpcoRow(
                 </td>
                 <td>
                     <input
+                    className={`text-ellipsis outline-none p-1`}
                     type="text"
                     name="value"
                     readOnly={isEditable ? false : true}
@@ -56,8 +59,8 @@ export default function OpcoRow(
                     defaultValue={opco.value}/>
                 </td>
                 <td 
-                className={`${isEditable && "hover:bg-gray-500"} flex justify-center items-center rounded-xl mr-1
-                p-1`}
+                className={`${isEditable && "hover:bg-gray-500"} mr-1
+                p-1 h-[inherit] border-1`}
                 onClick={() => { 
                     if(opco.opcoKey == DEFAULT_KEY){
                         toastError("Cannot delete default key");
@@ -72,7 +75,9 @@ export default function OpcoRow(
                         });
                     }
                 }}>
-                    <FaTrash color={!isEditable ? "gray" : "black"}/>
+                    <div className="flex justify-center items-center">
+                        <FaTrash color={!isEditable ? "gray" : "black"}/>
+                    </div>
                 </td>
             </tr>
         </>

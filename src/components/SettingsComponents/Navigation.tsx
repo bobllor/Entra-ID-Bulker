@@ -15,7 +15,7 @@ export default function Navigation({
         <div className={`h-full w-[33%] bg-gray-500/60 absolute 
         settings-left-panel p-2`}>
             <div className="flex items-center justify-start px-1">
-                <div className="hover:bg-gray-500"
+                <div className="hover:bg-gray-500 rounded-xl p-1 mb-1"
                 ref={closeRef}>
                     <FaTimes size={25} />
                 </div>
