@@ -1,5 +1,6 @@
 from core.names import NameFormatter, NoSpace, Period
 from typing import Literal, Any, Callable
+from support.types import Response
 import string, re
 
 def format_name(name: str, *, keep_full: bool = False) -> str:
@@ -268,7 +269,7 @@ def generate_text(*,
     text: str, 
     username: str = '', 
     password: str = '',
-    name: str = '') -> dict[str, str]:
+    name: str = '') -> Response:
     '''Replaces strings in a text template.
 
     There are key words that can be replaced: USERNAME, PASSWORD, and NAME.
@@ -319,4 +320,4 @@ def generate_text(*,
     
     return generate_response(status='success', 
         message='Successfully generated the text in the output folder.',
-        content={"text": text})
+        content=text)

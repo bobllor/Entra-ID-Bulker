@@ -42,3 +42,8 @@ class APISettings(TypedDict):
     flatten_csv: bool
     template: TemplateMap
     format: Formatting
+
+# NOTE: can contain other keys if used.
+class Response(TypedDict):
+    status: Literal["success", "error"]
+    message: str
