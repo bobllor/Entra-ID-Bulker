@@ -57,10 +57,10 @@ export default function App() {
           className="outline-none"
           tabIndex={-1}
           onClick={() => navigate("/settings", {replace: true, state: {previousLocation: location}})}>
-            <FaCog size={32} stroke="white"/>
+            <FaCog size={32} strokeWidth={10} stroke="black" color="gray"/>
           </button>
         </div>
-        <div className="flex justify-center items-center gap-2">
+        <div className="absolute left-10 top-5 z-2 flex flex-col justify-center items-center gap-2">
           <Navigation formState={{state: formEdited, func: setFormEdited}}/>
         </div>
         <Routes location={location.state?.previousLocation || location}>
