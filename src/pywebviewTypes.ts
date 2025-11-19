@@ -23,6 +23,11 @@ export type Formatting = {
     format_style: FormatStyle,
 }
 
+export type Response = {
+    status: "success" | "error",
+    message: string,
+}
+
 export type FormatType = "period" | "no space";
 export type FormatCase = "title" | "upper" | "lower";
 export type FormatStyle = "first last" | "f last" | "first l";

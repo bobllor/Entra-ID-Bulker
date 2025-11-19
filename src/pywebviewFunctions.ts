@@ -1,5 +1,6 @@
 import { ReaderType } from "./components/SettingsComponents/types";
 import "./pywebview";
+import { Response } from "./pywebviewTypes";
 
 /**
  * Retrieves the contents of the reader.
@@ -19,12 +20,8 @@ export async function getReaderContent(reader: ReaderType): Promise<Record<strin
  * @param value Any value for the key
  * @param parent Ensures the update occurs in the parent key, only required if multiple keys exist in different nest levels
  */
-export async function updateSetting(key: string, value: any, parent?: string): Promise<boolean>{
-    const res: Record<string, string> = await window.pywebview.api.update_setting(key, value, parent);
+export async function updateSetting(key: string, value: any, parent?: string): Promise<Response>{
+    const res: Response = await window.pywebview.api.update_setting(key, value, parent);
 
-    if(res["status"] == "success"){
-        return true;
-    }
-
-    return false;
+    return res;
 }
