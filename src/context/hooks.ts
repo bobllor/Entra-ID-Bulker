@@ -16,12 +16,31 @@ export function useInitSettings(setApiSettings: SettingsProps["setApiSettings"])
     }, [])
 }
 
+/**
+ * Hook to initialize the headers context
+ * @param setHeaders State setter function for setting Headers
+ */
 export function useInitHeaders(setHeaders: Headers["setHeaders"]){
     useEffect(() => {
         getReaderContent("excel").then((res) => {
             setHeaders(res as HeaderData);
         })
     }, [])
+}
+
+export function useUpdateSettings(
+    updateSettings: boolean, 
+    setUpdateSettings: SettingsProps["setUpdateSettings"],
+    setApiSettings: SettingsProps["setApiSettings"]){
+        useEffect(() => {
+            if(updateSettings){
+                getReaderContent("settings").then((res) => {
+                    setApiSettings(res as APISettings);
+
+                    setUpdateSettings(false);
+                })
+            }
+        }, [updateSettings])
 }
 
 type SettingsProps = {
