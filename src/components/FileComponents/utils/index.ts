@@ -2,6 +2,7 @@ import React from 'react';
 import { toastError, toastSuccess } from '../../../toastUtils.ts';
 import '../../../pywebview.ts';
 import { UploadedFilesProps, FileStatus, GenerateCSVProps } from './types.ts';
+import { Response } from '../../../pywebviewTypes.ts';
 
 //** Updates the uploaded files state with the event file from the input element. */
 export function onFileChange(
@@ -44,16 +45,20 @@ async function getBase64(file: File): Promise<string | ArrayBuffer | null>{
 export async function uploadFile(
     event: React.SyntheticEvent<HTMLFormElement>,
     fileArr: Array<UploadedFilesProps>,
-    setFileArr: React.Dispatch<React.SetStateAction<Array<UploadedFilesProps>>>): Promise<void>{
+    setFileArr: React.Dispatch<React.SetStateAction<Array<UploadedFilesProps>>>): Promise<boolean>{
     event.preventDefault();
+
+    // by default it will assume true, it is modified inside the csv generation call.
+    let boolOut: boolean = true;
 
     if(fileArr.length == 0){
         toastError("No files were submitted.");
-        return;
+        return true;
     }
 
     const b64Arr: Array<GenerateCSVProps> = [];
 
+    // setting up the b64 strings to send to the backend.
     for(const file of fileArr){
         const fileExtension: string|undefined = file.file?.name.split('.').at(-1);
 
@@ -70,20 +75,22 @@ export async function uploadFile(
     for(const b64_ele of b64Arr){
         let status: FileStatus = "success";
         try{
-            const res: {
-                status: string, message: string
-            } = await window.pywebview.api.generate_azure_csv(b64_ele);
+            const res: Response = await window.pywebview.api.generate_azure_csv(b64_ele);
             
             if(res.status == 'success'){
                 toastSuccess(res.message);
             }else{
                 toastError(res.message);
                 status = "error";
+
+                boolOut = false;
             }
         }catch(error){
             if(error instanceof Error){
                 toastError(error.message);
                 status = "error";
+
+                boolOut = false;
             }
         }
 
@@ -95,6 +102,8 @@ export async function uploadFile(
             return p;
         }));
     }
+
+    return boolOut;
 }
 
 export function onDragDrop(event: DragEvent, 
