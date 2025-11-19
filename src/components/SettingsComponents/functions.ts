@@ -4,6 +4,7 @@ import { toastError } from "../../toastUtils";
 import React from "react";
 import "../../pywebview";
 import { SettingsData } from "../../context/SettingsContext";
+import { updateSetting } from "../../pywebviewFunctions";
 
 /**
  * Handles text submission to update a key for the settings in the backend.
@@ -38,7 +39,8 @@ export async function addOpcoEntry(
     event: React.FormEvent<HTMLFormElement>, 
     setOpcoOptions: React.Dispatch<React.SetStateAction<Array<OpcoMap>>>): Promise<boolean>{
         event.preventDefault();
-        const children = event.currentTarget.children;
+        // NOTE: div exists over the input elements.
+        const children = event.currentTarget.children[0].children;
 
         // keys of inputData object
         const keyName = "keyOpco";
@@ -46,8 +48,13 @@ export async function addOpcoEntry(
 
         const opcoHolder: OpcoMap = {opcoKey: "", value: "", id: generateId()};
 
+        // NOTE: FormData does this better. future me please!
         for(let i = 0; i < children.length; i++){
             const element: HTMLInputElement = children[i] as HTMLInputElement;
+
+            if(element.tagName != "INPUT"){
+                continue;
+            }
 
             if(element.getAttribute("type") == "submit"){
                 continue;
@@ -59,6 +66,7 @@ export async function addOpcoEntry(
 
             if(elementName == keyName){
                 opcoHolder.opcoKey = value.toLowerCase();
+                element.focus();
             }else if(elementName == valueName){
                 opcoHolder.value = value;
             }
@@ -108,6 +116,17 @@ export async function setTextGenerationState(state: boolean, setApiSettings: Set
             setApiSettings(prev => ({...prev, template: {...prev.template, enabled: !prev.template.enabled}}));
         }
     })
+}
+
+export async function setSetting(key: string, state: any, func: (...any: any[]) => void): Promise<void>{
+    updateSetting(key, state).then((res) => {
+        if(res.status == "error"){
+            toastError(res.message);
+            return;
+        }
+
+        func();
+    });
 }
 
 /**
