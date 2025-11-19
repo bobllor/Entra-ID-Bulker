@@ -7,6 +7,7 @@ import { toastError } from "../../../toastUtils";
 
 const title: string = "Text Template";
 const tooltipText: string = "Settings for the text output for each row.";
+const maxTextLength: number = 1250;
 
 export default function TextForm(): JSX.Element{
     return (
@@ -33,7 +34,7 @@ function TextField(): JSX.Element{
                 }}>
                 <div className="flex flex-col items-center justify-center gap-2">
                     <textarea
-                    maxLength={500}
+                    maxLength={maxTextLength}
                     onChange={(e) => {
                         const value: string = e.currentTarget.value;
 
@@ -42,7 +43,9 @@ function TextField(): JSX.Element{
                     value={textValue} 
                     className="relative bg-white resize-none rounded-xl border-1 p-2 w-[90%] h-60 outline-none">
                     </textarea>
-                    <span className={`${textValue.length == 500 && "text-red-500"}`}>{textValue.length}/500</span>
+                    <span className={`${textValue.length >= maxTextLength && "text-red-500"}`}>
+                        {textValue.length}/{maxTextLength}
+                    </span>
                     <Button text="Submit" type="submit"/>
                 </div>
             </form>
