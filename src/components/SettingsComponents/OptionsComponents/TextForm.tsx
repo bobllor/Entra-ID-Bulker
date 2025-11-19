@@ -3,6 +3,7 @@ import OptionBase from "./OptionBase";
 import Button from "../../ui/Button";
 import { SettingsData, useSettingsContext } from "../../../context/SettingsContext";
 import { updateSetting } from "../../../pywebviewFunctions";
+import { toastError } from "../../../toastUtils";
 
 const title: string = "Text Template";
 const tooltipText: string = "Settings for the text output for each row.";
@@ -50,9 +51,11 @@ function TextField(): JSX.Element{
 }
 
 async function textSubmission(text: string, setApiSettings: SettingsData["setApiSettings"]): Promise<void>{
-    const status = await updateSetting("text", text, "template");
+    const res = await updateSetting("text", text, "template");
 
-    if(status){
+    if(res.status == "success"){
         setApiSettings(prev => ({...prev, template: {...prev.template, text: text}}));
+    }else{
+        toastError(res.message);
     }
 }
