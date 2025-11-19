@@ -4,8 +4,9 @@ from tests.fixtures import api, df
 from typing import Any
 from core.parser import Parser
 from support.vars import DEFAULT_HEADER_MAP, DEFAULT_SETTINGS_MAP, AZURE_HEADERS 
-from support.types import ManualCSVProps, APISettings, Formatting
+from support.types import ManualCSVProps, APISettings, Formatting, Response
 from io import BytesIO
+import string
 import pandas as pd
 import support.utils as utils
 import tests.utils as ttils
@@ -82,7 +83,8 @@ def test_generate_csv_dupe_names(tmp_path: Path, api: API, df: pd.DataFrame):
                 raise AssertionError(f"Expected {base_name} in {username}")
 
             dupe_count += 1
-    
+
+    # checks if the full name is not affecte dby the changes. 
     for i, name in enumerate(new_df[AZURE_HEADERS["name"]].to_list()):
         if names[i] != name:
             raise AssertionError(f"Name {name} does not match base name {names[i]}") 
@@ -178,6 +180,20 @@ def test_manual_generate_csv_dupe_names(tmp_path: Path, api: API, df: pd.DataFra
     for i, name in enumerate(new_df[AZURE_HEADERS["name"]].to_list()):
         if names[i] != name:
             raise AssertionError(f"Name {name} does not match base name {names[i]}") 
+    
+def test_generate_csv_invalid_text(api: API, df: pd.DataFrame):
+    # max chars is 1250 by default
+    string_chars: str = string.ascii_letters
+    chars: list[str] = [string_chars[random.randint(0, len(string_chars) - 1)] for _ in range(1251)]
+    text: str = "".join(chars)
+
+    api.update_setting("text", text, "template")
+    api.update_setting("enabled", True, "template")
+
+    res: Response = api.generate_azure_csv(df) 
+    print(res)
+
+    assert res["status"] == "error"
 
 def test_generate_csv_formatter(tmp_path: Path, api: API, df: pd.DataFrame):
     # case / style / type

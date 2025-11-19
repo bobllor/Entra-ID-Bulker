@@ -136,7 +136,15 @@ class API:
 
             res["status"] = temp_res["status"]
             res["message"] += temp_res["message"]
-        
+
+            # NOTE: the only error here is if the text is too long.
+            if temp_res["status"] == "error":
+                self.logger.warning(f"{res['message']}, text trimmed to 1250 characters from {len(templates["text"])}")
+
+                # max char is 1250, and only triggers if the text is > 1250.
+                self.update_setting("text", templates["text"][:1250], "template")
+
+        # NOTE: any failures will require an update to the context in the frontend. 
         return res
     
     def generate_manual_csv(self, content: list[ManualCSVProps]) -> dict[str, str]:
@@ -220,6 +228,7 @@ class API:
             res["status"] = "error"
             res["message"] = ", failed to generate template files"
         elif template_res["status"] == "success":
+            # NOTE: this is appended to the final successful message
             res["message"] = " and template files"
         
         return res
@@ -317,7 +326,9 @@ class API:
                 of the same name exists in different nest levels. By default it is None.
         '''
         self.logger.info("Settings update requested")
-        self.logger.debug(f"Key: {key} | Value: {value} | Parent Key: {parent_key}")
+        debug_val: Any = utils.format_value(value)
+
+        self.logger.debug(f"Key: {key} | Value: {debug_val} | Parent Key: {parent_key}")
 
         res: dict[str, Any] = self.settings.update_search(key, value, main_key=parent_key)
 

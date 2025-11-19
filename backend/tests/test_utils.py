@@ -1,4 +1,5 @@
 from typing import Any
+from support.types import Response
 import support.utils as utils
 
 def test_hyphen_name_format():
@@ -61,6 +62,15 @@ def test_generate_text_args():
     exp_test: str = text.replace("[USERNAME]", username).replace("[PASSWORD]", password)
 
     assert res["content"] == exp_test
+
+def test_generate_text_invalid():
+    # max chars is 1250 by default
+    chars: list[str] = ["a" for _ in range(1251)]
+    text: str = "".join(chars)
+
+    res: Response = utils.generate_text(text=text)
+
+    assert res["status"] == "error"
 
 def test_invalid_name():
     name: str = utils.format_name(" ")

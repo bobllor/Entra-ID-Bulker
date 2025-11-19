@@ -305,11 +305,15 @@ def generate_text(*,
             Name of the client.
     '''
     text = text.strip()
-    max_chars: int = 500
+    max_chars: int = 1250
 
     # this is going to get checked on the front end but it won't hurt to have this just in case.
     if len(text) > max_chars:
-        return generate_response(status='error', message='Cannot have a text of over 500 characters.')
+        return generate_response(
+            status='error', 
+            message=f'Cannot have a text of over {max_chars} characters.',
+            content="",    
+        )
 
     key_words: list[str] = ['USERNAME', 'PASSWORD', 'NAME']
     data: list[str] = [username, password, name]
@@ -321,3 +325,14 @@ def generate_text(*,
     return generate_response(status='success', 
         message='Successfully generated the text in the output folder.',
         content=text)
+
+def format_value(value: Any) -> Any:
+    '''Formats a value for logging purposes. 
+    
+    This is **not to be used** for final data, rather it is only 
+    used to format data for the log.
+    '''
+    if isinstance(value, str) and len(value) > 200:
+        value = value[0:200] + "..."
+
+    return value

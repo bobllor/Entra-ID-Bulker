@@ -10,7 +10,7 @@ passwords: list[str] = [utils.generate_password(20) for _ in range(len(names))]
 
 text: str = "Hello [USERNAME] I am [NAME] and your password is [PASSWORD]"
 
-def test_write_csv(tmp_path: Path):
+def test_write_text(tmp_path: Path):
     writer: AzureWriter = AzureWriter()
 
     writer.set_full_names(names)

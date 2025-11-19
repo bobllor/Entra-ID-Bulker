@@ -141,10 +141,14 @@ class AzureWriter:
 
         res: Response = self._validates_template_write(names, usernames, passwords)
 
+        # used for testing
+        res["output_dir"] = str(path)
+
         if res["status"] == "error":
             return res
         
         text_count: int = 0
+        failed_count: int = 0
 
         for i, name in enumerate(names): 
             username: str = usernames[i]
@@ -158,12 +162,18 @@ class AzureWriter:
             if text_res["status"] == "success":
                 text_count += 1
             elif text_res["status"] == "error":
-                self.logger.error(f"Failed to generate text file: {text_res}")
+                failed_count += 1
+                self.logger.error(f"Failed to generate text file for user {name}: {text_res}")
+                self.logger.error(f"Failed count: {failed_count}")
+
+                res["status"] = "error"
+                res["message"] = text_res["message"] + f" Fails count: {failed_count}"
+                continue
 
             with open(path / file_name, "w") as file:
                 file.write(text_res["content"])
-        
-        return utils.generate_response(message=f"Created {text_count} files", output_dir=str(path))
+
+        return res
     
     def get_data(self, key: HeadersKey) -> list[str]:
         '''Gets the specified data.'''

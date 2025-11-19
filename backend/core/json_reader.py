@@ -170,7 +170,10 @@ class Reader:
         if data is None:
             data = self._content
         
-        res: dict[str, Any] = utils.generate_response(status="error", message="Failed to update key")
+        res: dict[str, Any] = utils.generate_response(
+            status="error", 
+            message="Failed to update key, key does not exist",
+        )
         for k in data.keys():
             if main_key is not None:
                 if main_key in data:
@@ -179,11 +182,11 @@ class Reader:
                     return res
             else:
                 if key in data:
-                    self.logger.debug(f"Key found in {data}")
-
                     data[key] = value
 
-                    self.logger.info(f"Updated key {key} with value {value}")
+                    debug_val: Any = utils.format_value(value)
+
+                    self.logger.info(f"Updated key {key} with value {debug_val}")
 
                     return utils.generate_response(message="Successfully updated key")
 
