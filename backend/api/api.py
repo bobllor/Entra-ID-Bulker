@@ -139,7 +139,7 @@ class API:
 
             # NOTE: the only error here is if the text is too long.
             if temp_res["status"] == "error":
-                self.logger.warning(f"{res['message']}, text trimmed to 1250 characters from {len(templates["text"])}")
+                self.logger.warning(f"{res['message']}, text trimmed to 1250 characters from {len(templates['text'])}")
 
                 # max char is 1250, and only triggers if the text is > 1250.
                 self.update_setting("text", templates["text"][:1250], "template")
