@@ -1,14 +1,14 @@
 from pathlib import Path
-from api.api import API
+from backend.api.api import API
 from tests.fixtures import api, df
 from typing import Any
-from core.parser import Parser
-from support.vars import DEFAULT_HEADER_MAP, DEFAULT_SETTINGS_MAP, AZURE_HEADERS 
-from support.types import ManualCSVProps, APISettings, Formatting, Response
+from backend.core.parser import Parser
+from backend.support.vars import DEFAULT_HEADER_MAP, DEFAULT_SETTINGS_MAP, AZURE_HEADERS 
+from backend.support.types import ManualCSVProps, APISettings, Formatting, Response
 from io import BytesIO
 import string
 import pandas as pd
-import support.utils as utils
+import backend.support.utils as utils
 import tests.utils as ttils
 import random
 

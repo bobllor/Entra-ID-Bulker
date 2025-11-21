@@ -1,8 +1,8 @@
-from logger import Log
+from backend.logger import Log
 from pathlib import Path
-from core.json_reader import Reader
-from api.api import API
-from support.vars import DEFAULT_HEADER_MAP, DEFAULT_SETTINGS_MAP, DEFAULT_OPCO_MAP
+from backend.core.json_reader import Reader
+from backend.api.api import API
+from backend.support.vars import DEFAULT_HEADER_MAP, DEFAULT_SETTINGS_MAP, DEFAULT_OPCO_MAP
 import pandas as pd
 import pytest
 

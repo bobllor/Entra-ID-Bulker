@@ -1,6 +1,6 @@
 from typing import Any
-from support.types import Response
-import support.utils as utils
+from backend.support.types import Response
+import backend.support.utils as utils
 
 def test_hyphen_name_format():
     base_names: list[str] = [

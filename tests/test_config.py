@@ -2,7 +2,7 @@ from pathlib import Path
 from backend.core.json_reader import Reader
 from typing import Any
 from tests.fixtures import reader
-from support.vars import DEFAULT_HEADER_MAP, DEFAULT_OPCO_MAP, DEFAULT_SETTINGS_MAP
+from backend.support.vars import DEFAULT_HEADER_MAP, DEFAULT_OPCO_MAP, DEFAULT_SETTINGS_MAP
 
 # NOTE: DEFAULT_HEADER_MAP is the default map for reader.
 

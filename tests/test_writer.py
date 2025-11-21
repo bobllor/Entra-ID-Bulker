@@ -1,8 +1,8 @@
-from core.azure_writer import AzureWriter
+from backend.core.azure_writer import AzureWriter
 from pathlib import Path
-from support.vars import DEFAULT_OPCO_MAP
-from support.types import Response
-import support.utils as utils
+from backend.support.vars import DEFAULT_OPCO_MAP
+from backend.support.types import Response
+import backend.support.utils as utils
 
 names: list[str] = ["John Doe", "Jane Doe", "Krane Doe"]
 usernames: list[str] = utils.generate_usernames(names, ["" for _ in range(len(names))], DEFAULT_OPCO_MAP)
