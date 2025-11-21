@@ -9,7 +9,7 @@ const widthStyle = "w-160";
 
 export default function UploadForm({inputFileRef, FileUpload, showDrop}){
     const { uploadedFiles, setUploadedFiles } = useFileContext();
-    const { setUpdateSettings } = useSettingsContext();
+    const { apiSettings, setUpdateSettings } = useSettingsContext();
 
     return (
         <>
@@ -36,7 +36,7 @@ export default function UploadForm({inputFileRef, FileUpload, showDrop}){
                 </>
                 <form 
                 className={`flex flex-col justify-center items-center gap-3 p-5 ${!showDrop && "z-2"}`}
-                onSubmit={(e) => uploadFile(e, uploadedFiles, setUploadedFiles).then(status => {
+                onSubmit={(e) => uploadFile(e, uploadedFiles, setUploadedFiles, apiSettings.flatten_csv).then(status => {
                     if(!status){
                         setUpdateSettings(true);
                     }
