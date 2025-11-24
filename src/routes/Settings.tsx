@@ -9,7 +9,7 @@ const iconSize: number = 20;
 const buttons: Array<SettingsButton> = [
     {label: "General", url: "", icon: <FaHome size={iconSize}/>},
     {label: "Headers", url: "headers-mapping", icon: <FaList size={iconSize} />},
-    {label: "Operating Company", url: "opco-mapping", icon: <FaBuilding size={iconSize} />},
+    {label: "Organization", url: "opco-mapping", icon: <FaBuilding size={iconSize} />},
     {label: "Text Template", url: "template", icon: <FaClipboardList size={iconSize} />},
 ]
 

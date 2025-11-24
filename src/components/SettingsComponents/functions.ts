@@ -5,21 +5,15 @@ import React from "react";
 import "../../pywebview";
 import { SettingsData } from "../../context/SettingsContext";
 import { updateSetting } from "../../pywebviewFunctions";
+import { Response } from "../../pywebviewTypes";
 
 /**
  * Handles text submission to update a key for the settings in the backend.
  * @param event - The React form event.
  * @param readerType - The type to obtain the correct value from the target Reader in the backend.
  */
-export async function onSubmitText(event: React.FormEvent<HTMLFormElement>, readerType: ReaderType): Promise<boolean>{
-    event.preventDefault();
-
-    const targetInput: HTMLInputElement|null = event.currentTarget.children.item(0) as HTMLInputElement;
-    
-    const keyToChange: string = targetInput.getAttribute("name")!;
-    const value: string = targetInput.value;
-
-    await window.pywebview.api.update_key(readerType, keyToChange, value).then((res: Record<string, string>) => {
+export async function updateExcelReader(keyName: string, value: string, readerType: ReaderType): Promise<boolean>{
+    await window.pywebview.api.update_key(readerType, keyName, value).then((res: Response) => {
         if(!checkRes(res)){
             toastError(res["message"]);
             return false;
@@ -140,7 +134,7 @@ export async function updateFormattingKey(
         await window.pywebview.api.update_setting(key, value, "format").then((res: Record<string, string>) => {
             if(res["status"] == "success"){
                 setApiSettings(prev => (
-                    {...prev, template: {...prev.template, key: value}}
+                    {...prev, format: {...prev.format, [key]: value}}
                 ))
             }
         });

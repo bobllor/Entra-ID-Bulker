@@ -10,10 +10,11 @@ import "../../../pywebview";
 import { FaCheck, FaEdit, FaTimes } from "react-icons/fa";
 import Button from "../../ui/Button";
 import { ToolTip } from "../../ui/ToolTip";
+import Loading from "../../ui/Loading";
 
-const title: string = "Operating Company";
-const tooltipText: string = "Mapping of operating company to a domain name.";
-const inputLabel: InputLabelProps = {keyOpco: "Operating Company", valueOpco: "Domain"};
+const orgKeyName: string = "Organization";
+const tooltipText: string = "Mapping of an organization to a domain name.";
+const inputLabel: InputLabelProps = {keyOpco: orgKeyName, valueOpco: "Domain"};
 
 export default function OpcoMapping(): JSX.Element{
     const [opcoOptions, setOpcoOptions] = useState<Array<OpcoMap>>([]);
@@ -42,12 +43,12 @@ export default function OpcoMapping(): JSX.Element{
 
     return (
         <>
-            <OptionBase title={title} tooltipText={tooltipText} element={
+            <OptionBase title={orgKeyName} tooltipText={tooltipText} element={
                 opcoOptions.length == 0 
                 ? 
                 <div>
                     {/* one entry will always exist, it is only empty on initial load */}
-                    TODO: add the spinner here
+                    <Loading />
                 </div>
                 : <>
                     <form
@@ -141,7 +142,7 @@ export default function OpcoMapping(): JSX.Element{
                     <table className="w-full text-center table-fixed mb-30">
                         <thead className="border-t-1 border-b-1">
                             <tr>
-                                <th>Operating Company</th>
+                                <th>Organization</th>
                                 <th>Domain</th>
                                 <th className="w-10">
                                     <div className="flex justify-center items-center">
