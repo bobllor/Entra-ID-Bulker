@@ -18,6 +18,8 @@ AzureFileState = TypedDict(
         "upload_id": str,
         "csv_file_name": str,
         "skip_version_row": bool,
+        "uid": str,
+        "template_name": str,
     }
 )
 
@@ -58,6 +60,7 @@ class API:
             "upload_id": "", 
             "csv_file_name": "",
             "skip_version_row": False,
+            "uid": "",
         }
 
     def generate_azure_csv(self, content: GenerateCSVProps | pd.DataFrame, upload_id: str = None) -> Response: 
@@ -94,6 +97,9 @@ class API:
             df = pd.read_excel(in_mem_bytes)
         else:
             df = content
+
+        if upload_id is None:
+            upload_id = utils.get_id(divisor=2)
 
         parser: Parser = Parser(df)
         
@@ -142,14 +148,20 @@ class API:
         writer.set_passwords([utils.generate_password(20) for _ in range(len(names))])
 
         curr_date: str = utils.get_date()
-        csv_name: str = f"{curr_date}-az-bulk-{utils.get_id()}.csv"
 
+        # determines whether or not to create a new file or append to an existing file
         if upload_id != self._auto_azure_state["upload_id"]:
+            # this is always reset on every run (assuming no flatten csv).
             self._auto_azure_state["upload_id"] = upload_id
-            self._auto_azure_state["csv_file_name"] = csv_name
             self._auto_azure_state["skip_version_row"] = False
+
+            self._auto_azure_state["uid"] = utils.get_id()
+            csv_name: str = f"{curr_date}-az-bulk-{self._auto_azure_state['uid']}.csv"
+
+            self._auto_azure_state["csv_file_name"] = csv_name
+            self._auto_azure_state["template_name"] = f"{curr_date}-{self._auto_azure_state['uid']}"
         else:
-            csv_name = self._auto_azure_state["csv_file_name"]
+            csv_name: str = self._auto_azure_state["csv_file_name"]
             
         writer.write(Path(self.get_reader_value("settings", "output_dir")) 
             / csv_name, skip_version=self._auto_azure_state["skip_version_row"])
@@ -162,7 +174,7 @@ class API:
 
         templates: TemplateMap = self.settings.get("template")
         if templates["enabled"]:
-            temp_res: Response = self._generate_template(templates["text"], writer, curr_date)
+            temp_res: Response = self._generate_template(templates["text"], writer, self._auto_azure_state["template_name"])
 
             res["status"] = temp_res["status"]
             res["message"] += temp_res["message"]
@@ -229,7 +241,9 @@ class API:
         writer.set_names(names)
 
         curr_date: str = utils.get_date()
-        csv_name: str = f"{curr_date}-az-bulk.csv"
+        uid: str = utils.get_id()
+
+        csv_name: str = f"{curr_date}-az-bulk-{uid}.csv"
         writer.write(Path(self.get_reader_value("settings", "output_dir")) / csv_name)
 
         self.logger.info(f"Manual generated {csv_name} at {self.get_reader_value('settings', 'output_dir')}")
@@ -239,7 +253,7 @@ class API:
 
         templates: TemplateMap = self.settings.get("template")
         if templates["enabled"]:
-            temp_res: Response = self._generate_template(templates["text"], writer, curr_date)
+            temp_res: Response = self._generate_template(templates["text"], writer, f"{curr_date}-{uid}")
 
             res["status"] = temp_res["status"]
             res["message"] += temp_res["message"]
@@ -255,12 +269,12 @@ class API:
 
         return res
 
-    def _generate_template(self, text: str, writer: AzureWriter, date: str) -> Response:
+    def _generate_template(self, text: str, writer: AzureWriter, file_name: str) -> Response:
         res: Response = utils.generate_response(message="")
         template_res: Response = writer.write_template(
             self.settings.get("output_dir"), 
             text=text, 
-            start_date=date,
+            file_name=file_name,
         )
 
         if template_res["status"] == "error":

@@ -137,7 +137,7 @@ class AzureWriter:
     
         return res
     
-    def write_template(self, out: Path | str, *, text: str, start_date: str = None) -> Response:
+    def write_template(self, out: Path | str, *, text: str, file_name: str = None) -> Response:
         '''Writes the template text for each user. A Response is returned with the standard keys and
         `output_dir`, being the folder of the created files.
         
@@ -155,11 +155,16 @@ class AzureWriter:
 
             text: str
                 The text used in the template.
+
+            file_name: str
+                The name of the templates folder. This is automatically generated if None, or if
+                flatten CSV is used then the same file name should be used.
         '''
         # allows us to write to the same output folder.
-        if start_date is None:
-            start_date = utils.get_date()
-        folder_name: str = f"templates-{start_date}"
+        if file_name is None:
+            file_name = f"{utils.get_date()}-{utils.get_id()}"
+            
+        folder_name: str = f"templates-{file_name}"
 
         path: Path = out / "templates" if isinstance(out, Path) else Path(out) / "templates"
         path = path / folder_name

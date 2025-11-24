@@ -51,6 +51,43 @@ def test_generate_csv(tmp_path: Path, api: API, df: pd.DataFrame):
         if username not in created_usernames:
             raise AssertionError(f"Username {username} not found, CSV generation failed")
 
+def test_generate_csv_multiple_template(tmp_path: Path, api: API, df: pd.DataFrame):
+    res: Response = api.update_setting("enabled", True, "template")
+
+    if res["status"] == "error":
+        raise AssertionError(f"Failed to update setting key: {res}")
+
+    parser: Parser = Parser(df)
+    parser.apply(DEFAULT_HEADER_MAP["name"], func=utils.format_name)
+
+    dataframes: list[pd.DataFrame] = [parser.get_df(), parser.get_df()]
+
+    for frame in dataframes:
+        res = api.generate_azure_csv(frame)
+
+        if res["status"] == "error":
+            raise AssertionError(f"Failed to generate CSV: {res}")
+
+    base_len: int = len(dataframes)
+    base_row_len: int = len(parser.get_df()) * 2
+        
+    csv_count: int = 0
+    for file in (tmp_path).iterdir():
+        if ".csv" in file.suffix:
+            csv_count += 1
+    
+    template_folder_count: int = 0
+    template_count: int = 0
+    for file in (tmp_path / "templates").iterdir():
+        if file.is_dir():
+            template_folder_count += 1
+
+            for _ in file.iterdir():
+                template_count += 1
+    
+    assert base_len == csv_count and base_len == template_folder_count and \
+        template_count == base_row_len
+
 def test_generate_csv_dupe_names(tmp_path: Path, api: API, df: pd.DataFrame):
     dupe_name: str = "John Doe"
     
@@ -297,6 +334,56 @@ def test_generate_csv_flatten(tmp_path: Path, api: API, df: pd.DataFrame):
     csv_df: pd.DataFrame = pd.read_csv(csv_file)
 
     assert len(csv_df) == csv_len
+
+def test_generate_csv_templates(tmp_path: Path, api: API, df: pd.DataFrame):
+    res: Response = api.update_setting("enabled", True, "template")
+
+    if res["message"] == "error":
+        raise AssertionError(f"Failed to update setting: {res}")
+    
+    parser: Parser = Parser(df)
+    parser.apply(DEFAULT_HEADER_MAP["name"], func=utils.format_name)
+
+    base_len: int = len(df)
+
+    res = api.generate_azure_csv(parser.get_df(), "123")
+
+    if res["message"] == "error":
+        raise AssertionError(f"Failed to generate CSV and templates: {res}")
+    
+    template_len: int = 0
+    for file in (tmp_path / "templates").iterdir():
+        if file.is_dir():
+            for _ in file.iterdir():
+                template_len += 1
+    
+    assert base_len == template_len
+
+def test_generate_csv_flatten_templates(tmp_path: Path, api: API, df: pd.DataFrame):
+    res: Response = api.update_setting("enabled", True, "template")
+    res = api.update_setting("flatten_csv", True)
+
+    if res["message"] == "error":
+        raise AssertionError(f"Failed to update setting: {res}")
+    
+    parser: Parser = Parser(df)
+    parser.apply(DEFAULT_HEADER_MAP["name"], func=utils.format_name)
+
+    base_len: int = len(df) * 2
+    base_id: str = "123"
+
+    for frame in [parser.get_df(), parser.get_df()]:
+        res = api.generate_azure_csv(frame, base_id)
+        if res["message"] == "error":
+            raise AssertionError(f"Failed to generate CSV and templates: {res}")
+    
+    template_len: int = 0
+    for file in (tmp_path / "templates").iterdir():
+        if file.is_dir():
+            for _ in file.iterdir():
+                template_len += 1
+    
+    assert base_len == template_len
 
 def test_get_value(api: API):
     excel_val: Any = api.get_reader_value("excel", "name")
