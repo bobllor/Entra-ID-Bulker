@@ -3,9 +3,11 @@ export type UploadedFilesProps = {
     name: string,
     file: File,
     status: FileStatus,
+    fileType: FileType,
 }
 
 export type FileStatus = "error" | "success" | "none"
+export type FileType = "xlsx" | "csv";
 
 export type GenerateCSVProps = {
     b64: string,
