@@ -6,7 +6,7 @@ import { updateSetting } from "../../../pywebviewFunctions";
 import { toastError } from "../../../toastUtils";
 
 const title: string = "Text Template";
-const tooltipText: string = "Settings for the text output for each row.";
+const tooltipText: string = "The text template settings for creating account information for the users.";
 const maxTextLength: number = 1250;
 
 export default function TextForm(): JSX.Element{
