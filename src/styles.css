@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "./styles/settings.css";
+@import "./styles/animations.css";
 
 *{
     font-family: sans-serif;
