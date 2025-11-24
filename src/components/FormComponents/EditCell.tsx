@@ -4,6 +4,8 @@ import toast from "react-hot-toast";
 import { toaster } from "../../toastUtils";
 import { FaTimes, FaCheck } from "react-icons/fa";
 
+const buttonClass: string = "hover:bg-gray-400 p-2 rounded-xl";
+
 /** Component of ManualTable that reveals an edit box for a selected cell. */
 export default function EditCell({id, stringVal, setEditCell, manData}: EditCellProps): JSX.Element{
     const inputRef = useRef<HTMLInputElement|null>(null);
@@ -82,11 +84,12 @@ export default function EditCell({id, stringVal, setEditCell, manData}: EditCell
                     }
                 }}/>
                 <div
-                className="flex gap-5">
-                    <span>
+                className="flex gap-1">
+                    <span className={buttonClass}>
                         <FaCheck color="green" />
                     </span>
                     <span
+                    className={buttonClass}
                     onClick={() => setEditCell('')}>
                         <FaTimes color="red" />
                     </span>
