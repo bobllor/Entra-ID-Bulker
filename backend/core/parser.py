@@ -1,7 +1,7 @@
+from typing import Any, Callable
+from support.types import Response
 import pandas as pd
 import support.utils as util
-from typing import Any, Callable, overload, Literal
-from support.vars import AZURE_HEADERS, AZURE_VERSION
 
 class Parser:
     def __init__(self, df: pd.DataFrame):
@@ -17,8 +17,9 @@ class Parser:
         # lower all column names.
         self.df.rename(mapper=lambda x: x.lower(), axis=1, inplace=True)
 
-    def validate_headers(self, default_headers: dict[str, str]) -> dict[str, str]:
-        '''Validate the headers of the DataFrame.
+    def validate(self, default_headers: dict[str, str]) -> Response:
+        '''Validate the DataFrame and its headers. It will return a Response indicating an
+        error/success and a message with the error if applicable.
         
         Parameters
         ----------
@@ -27,7 +28,11 @@ class Parser:
                 are the internal names, the values are user-defined names. Used to validate
                 column headers.
         '''
-        res: dict[str, str] = self._check_df_columns(default_headers)
+        res: Response = self._check_duplicate_columns()
+        if res["status"] == "error":
+            return res
+
+        res = self._check_df_columns(default_headers)
 
         return res
     
@@ -84,13 +89,34 @@ class Parser:
     
     def get_df(self) -> pd.DataFrame:
         return self.df
+    
+    def _check_duplicate_columns(self) -> Response:
+        '''Checks the DataFrame of the file for duplicate column names. This ensures that there will not be multiple
+        same valued columns in a given file.
 
-    def _check_df_columns(self, column_map: dict[str, str]) -> dict[str, str]:
+        It returns an Response with an error if found.
+        '''
+        seen_values: set[str] = set()
+        duplicates: list[str] = []
+
+        for val in self.df.columns:
+            if val in seen_values:
+                duplicates.append(val)
+
+            seen_values.add(val)
+        
+        if len(duplicates) != 0:
+            col_str: str = "columns found in the file" if len(duplicates) != 1 else "column found in the file"
+            return util.generate_response("error", message=f"Duplicate {col_str}: {', '.join(duplicates)}")
+        
+        return util.generate_response(message="No duplicates found in the excel")
+
+    def _check_df_columns(self, column_map: dict[str, str]) -> Response:
         '''Checks the DataFrame columns to the reversed column map.'''
         # reverse to check the user defined names
         rev_column_map: dict = {v: k for k, v in column_map.items()}
 
-        found: list[str] = []
+        found: set[str]= set()
 
         for col in self.df.columns:
             low_col: str = col.lower()
@@ -99,9 +125,13 @@ class Parser:
                 break
 
             if low_col in rev_column_map:
-                found.append(low_col)
-            
-        if len(found) != len(rev_column_map):
-            return util.generate_response(status='error', message='')
+                found.add(low_col)
 
-        return util.generate_response(status='success')
+        if len(found) != len(column_map):
+            missing_columns: list[str] = [key for key in rev_column_map if key not in found]
+
+            column_str: str = "column header" if len(missing_columns) == 1 else "column headers"
+
+            return util.generate_response(status='error', message=f'File is missing {column_str}: {", ".join(missing_columns)}')
+
+        return util.generate_response(status='success', message=f"Found columns {','.join(found)}")
