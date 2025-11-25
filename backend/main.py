@@ -11,6 +11,8 @@ EXCEL_PATH: str = f'config/{EXCEL_FILE}'
 SETTINGS_PATH: str = f'config/{SETTINGS_FILE}'
 OPCO_PATH: str = f"config/{OPCO_FILE}"
 
+VERSION: str = "1.0.0"
+
 if __name__ == '__main__':
     logger: Log = Log()
 
