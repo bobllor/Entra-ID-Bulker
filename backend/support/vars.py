@@ -21,7 +21,6 @@ AZURE_HEADERS: AzureHeaders = {
 DEFAULT_HEADER_MAP: HeaderMap = {
     'opco': 'operating company',
     'name': 'full name',
-    'country': 'country/territory',
 }
 
 # no @ is used here because it is added in to the username generator
