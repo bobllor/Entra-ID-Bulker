@@ -336,7 +336,7 @@ class API:
             res["message"] = ", failed to generate template files"
         elif template_res["status"] == "success":
             # NOTE: this is appended to the final successful message
-            res["message"] = " and template files"
+            res["message"] = " and generated template files"
         
         return res
     
