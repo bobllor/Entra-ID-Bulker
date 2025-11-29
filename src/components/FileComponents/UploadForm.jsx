@@ -15,7 +15,8 @@ export default function UploadForm({inputFileRef, FileUpload, showDrop}){
         <>
             <div className={`${showDrop && "pointer-events-none opacity-0 z-0"} w-[50%]
             flex flex-col justify-center items-center`}>
-                <div className={`flex justify-start ${widthStyle} px-5 ${uploadedFiles.length == 0 ? "opacity-0" : "opacity-100"}`}>
+                <div className={`flex justify-start ${widthStyle} px-5 
+                ${uploadedFiles.length == 0 ? "opacity-0 z-[-1]" : "opacity-100"}`}>
                     <FileUpload inputFileRef={inputFileRef} hasUploadedFiles={true}/>
                 </div>
                 <div className={`border-1 border-black/50 default-shadow ${widthStyle} p-3 rounded-xl flex flex-col items-center gap-3 overflow-y-auto
