@@ -15,25 +15,18 @@ export default function UploadForm({inputFileRef, FileUpload, showDrop}){
         <>
             <div className={`${showDrop && "pointer-events-none opacity-0 z-0"} w-[50%]
             flex flex-col justify-center items-center`}>
-                <>
-                    {uploadedFiles.length > 0 &&
-                    <div className={`flex justify-start ${widthStyle} px-5`}>
-                        <FileUpload inputFileRef={inputFileRef} hasUploadedFiles={true}/>
-                    </div>
-                    }
-                    <div className={`border-1 h-90 ${widthStyle} p-3 rounded-xl flex flex-col items-center gap-3
-                    ${uploadedFiles != 0 ? "overflow-y-scroll" : "justify-center"}
-                    ${!showDrop && "z-2"}`}>
-                        {uploadedFiles.length == 0 && <FileUpload inputFileRef={inputFileRef} />}
-                        <>
-                          {uploadedFiles.map((file, i) => (
-                              <React.Fragment key={i}>
-                                  <FileEntry file={file} />
-                              </React.Fragment>
-                          ))}
-                        </>
-                    </div>
-                </>
+                <div className={`flex justify-start ${widthStyle} px-5 ${uploadedFiles.length == 0 ? "opacity-0" : "opacity-100"}`}>
+                    <FileUpload inputFileRef={inputFileRef} hasUploadedFiles={true}/>
+                </div>
+                <div className={`border-1 border-black/50 default-shadow ${widthStyle} p-3 rounded-xl flex flex-col items-center gap-3 overflow-y-auto
+                ${uploadedFiles == 0 && "justify-center"} ${!showDrop && "z-2"} max-h-90 min-h-90`}>
+                    {uploadedFiles.length == 0 && <FileUpload inputFileRef={inputFileRef} />}
+                        {uploadedFiles.map((file, i) => (
+                            <React.Fragment key={i}>
+                                <FileEntry file={file} />
+                            </React.Fragment>
+                        ))}
+                </div>
                 <form 
                 className={`flex flex-col justify-center items-center gap-3 p-5 ${!showDrop && "z-2"}`}
                 onSubmit={(e) => uploadFile(e, uploadedFiles, setUploadedFiles, apiSettings.flatten_csv).then(status => {
