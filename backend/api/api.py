@@ -1,7 +1,7 @@
 from core.json_reader import Reader
 from core.parser import Parser
 from core.azure_writer import AzureWriter
-from support.types import GenerateCSVProps, ManualCSVProps, APISettings, Formatting, TemplateMap, Response
+from support.types import GenerateCSVProps, ManualCSVProps, APISettings, Formatting, TemplateMap, Response, HeaderMap
 from base64 import b64decode
 from io import BytesIO
 from logger import Log
@@ -18,6 +18,8 @@ AzureFileState = TypedDict(
         "upload_id": str,
         "csv_file_name": str,
         "skip_version_row": bool,
+        "uid": str,
+        "template_name": str,
     }
 )
 
@@ -58,6 +60,7 @@ class API:
             "upload_id": "", 
             "csv_file_name": "",
             "skip_version_row": False,
+            "uid": "",
         }
 
     def generate_azure_csv(self, content: GenerateCSVProps | pd.DataFrame, upload_id: str = None) -> Response: 
@@ -80,44 +83,62 @@ class API:
             delimited: list[str] = content['b64'].split(',')
             file_name: str = content['fileName']
 
-            # could add csv support here, for now it will be excel.
-            # NOTE: this could be useless because my front end already has this check.
-            if 'spreadsheet' not in delimited[0].lower():
+            meta_info: str = delimited[0]
+
+            self.logger.info(f"Received file {file_name}: {meta_info}")
+            if all(file_type not in meta_info.lower() for file_type in ["spreadsheet", "csv"]):
                 return utils.generate_response(status="error", 
-                    message='Incorrect file entered, got file TYPE_HERE'
+                    message='Invalid file entered, only .csv and .xlsx are allowed'
                 )
+            
+            is_excel: bool = "spreadsheet" in meta_info
 
             b64_string: str = delimited[-1]
             decoded_data: bytes = b64decode(b64_string)
             in_mem_bytes: BytesIO = BytesIO(decoded_data)
 
-            df = pd.read_excel(in_mem_bytes)
+            try:
+                if is_excel:
+                    df = pd.read_excel(in_mem_bytes)
+                else:
+                    df = pd.read_csv(in_mem_bytes)
+            except Exception as e:
+                self.logger.critical(f"Failed to parse file: {file_name} | {meta_info}")
+                self.logger.critical(f"Exception: {e}")
+
+                return utils.generate_response("error", message=f"An unknown error occurred while parsing {file_name}")
+
+            self.logger.info(f"File column names: {df.columns.to_list()}")
         else:
             df = content
+
+        if upload_id is None:
+            upload_id = utils.get_id(divisor=2)
 
         parser: Parser = Parser(df)
         
         # the user defined headers (values).
         # the key is the internal name, the value is the user defined columns.
-        # however there is only three required keys: name, opco, and country.
-        default_excel_columns: dict[str, str] = self.excel.get_content()
+        # however there are only two required keys: name and opco.
+        excel_columns: HeaderMap = self.excel.get_content()
 
-        validate_dict: dict[str, str] = parser.validate_headers(
-            default_headers=default_excel_columns
+        self.logger.debug(f"Headers: {self.get_reader_content('excel')}")
+        validate_dict: Response = parser.validate(
+            default_headers=self.get_reader_content("excel")
         )
 
-        if validate_dict.get('status', 'error') == 'error':
-            return utils.generate_response(status='error', message=f'Invalid file \
-                {file_name} uploaded.')
+        if validate_dict["status"] == "error":
+            self.logger.error(f"Error validating DataFrame, message: {validate_dict['message']}")
+            return validate_dict
 
         # maybe read this back? for now i want to keep the full name.
         #parser.apply(default_excel_columns["name"], func=utils.format_name)
-        parser.apply(default_excel_columns["opco"], func=lambda x: x.lower())
-        excel_names: list[str] = parser.get_rows(default_excel_columns["name"])
+        parser.apply(excel_columns["opco"], func=lambda x: x.lower())
+        excel_names: list[str] = parser.get_rows(excel_columns["name"])
 
         names: list[str] = [utils.format_name(name) for name in excel_names]
         full_names: list[str] = [utils.format_name(name, keep_full=True) for name in excel_names]
-        opcos: list[str] = parser.get_rows(default_excel_columns["opco"])
+        opcos: list[str] = parser.get_rows(excel_columns["opco"])
 
         self.logger.debug(f"Opcos: {opcos}") 
         dupe_names: list[str] = utils.check_duplicate_names(names)
@@ -142,14 +163,20 @@ class API:
         writer.set_passwords([utils.generate_password(20) for _ in range(len(names))])
 
         curr_date: str = utils.get_date()
-        csv_name: str = f"{curr_date}-az-bulk-{utils.get_id()}.csv"
 
+        # determines whether or not to create a new file or append to an existing file
         if upload_id != self._auto_azure_state["upload_id"]:
+            # this is always reset on every run (assuming no flatten csv).
             self._auto_azure_state["upload_id"] = upload_id
-            self._auto_azure_state["csv_file_name"] = csv_name
             self._auto_azure_state["skip_version_row"] = False
+
+            self._auto_azure_state["uid"] = utils.get_id()
+            csv_name: str = f"{curr_date}-az-bulk-{self._auto_azure_state['uid']}.csv"
+
+            self._auto_azure_state["csv_file_name"] = csv_name
+            self._auto_azure_state["template_name"] = f"{curr_date}-{self._auto_azure_state['uid']}"
         else:
-            csv_name = self._auto_azure_state["csv_file_name"]
+            csv_name: str = self._auto_azure_state["csv_file_name"]
             
         writer.write(Path(self.get_reader_value("settings", "output_dir")) 
             / csv_name, skip_version=self._auto_azure_state["skip_version_row"])
@@ -162,7 +189,7 @@ class API:
 
         templates: TemplateMap = self.settings.get("template")
         if templates["enabled"]:
-            temp_res: Response = self._generate_template(templates["text"], writer, curr_date)
+            temp_res: Response = self._generate_template(templates["text"], writer, self._auto_azure_state["template_name"])
 
             res["status"] = temp_res["status"]
             res["message"] += temp_res["message"]
@@ -229,7 +256,9 @@ class API:
         writer.set_names(names)
 
         curr_date: str = utils.get_date()
-        csv_name: str = f"{curr_date}-az-bulk.csv"
+        uid: str = utils.get_id()
+
+        csv_name: str = f"{curr_date}-az-bulk-{uid}.csv"
         writer.write(Path(self.get_reader_value("settings", "output_dir")) / csv_name)
 
         self.logger.info(f"Manual generated {csv_name} at {self.get_reader_value('settings', 'output_dir')}")
@@ -239,7 +268,7 @@ class API:
 
         templates: TemplateMap = self.settings.get("template")
         if templates["enabled"]:
-            temp_res: Response = self._generate_template(templates["text"], writer, curr_date)
+            temp_res: Response = self._generate_template(templates["text"], writer, f"{curr_date}-{uid}")
 
             res["status"] = temp_res["status"]
             res["message"] += temp_res["message"]
@@ -255,12 +284,12 @@ class API:
 
         return res
 
-    def _generate_template(self, text: str, writer: AzureWriter, date: str) -> Response:
+    def _generate_template(self, text: str, writer: AzureWriter, file_name: str) -> Response:
         res: Response = utils.generate_response(message="")
         template_res: Response = writer.write_template(
             self.settings.get("output_dir"), 
             text=text, 
-            start_date=date,
+            file_name=file_name,
         )
 
         if template_res["status"] == "error":

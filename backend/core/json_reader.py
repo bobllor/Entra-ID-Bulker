@@ -2,7 +2,8 @@ from logger import Log
 from pathlib import Path
 from typing import Any, Literal
 from support import utils
-import json
+import json, os
+import tempfile as tf
 
 class Reader:
     def __init__(self, path: Path | str, *, 
@@ -28,7 +29,8 @@ class Reader:
                 Disables insertion and deletion in the Reader. By default it is false.
             
             is_test: bool, default False
-                Boolean to indicate if the Reader is a test instance or not.
+                Boolean to indicate if the Reader is a test instance or not. This enables deletion of default keys,
+                but otherwise functions normally.
         '''
         # NOTE: because i code on linux this has to be a string due to a PosixPath issue with pywebview
         self.path: str = str(path)
@@ -50,26 +52,50 @@ class Reader:
             self.write(self._content)
 
         self._defaults = defaults
+        self.logger.debug(f"Defaults for {self._name}: {self._defaults}")
+        # used for validating unupdatable defaults
+        self._update_reader_flag: bool = False
         if defaults:
-            self.validate_defaults(defaults)
+            self.logger.info(f"Validating {self._name}")
+            self._validate_defaults(defaults)
+
+            if self.update_only:
+                temp_dict: dict[str, Any] = self._validate_unupdatable_defaults(self._content, self._defaults)
+
+                if self._update_reader_flag:
+                    self._content = temp_dict
+                    self.write(self._content)
     
     def get_content(self) -> dict[str, Any]:
         '''Returns the dictionary contents.'''
         return self._content
+    
+    def get_path(self) -> Path:
+        '''Returns the Path of the reader.'''
+        return self._pathpath
 
     def read(self) -> dict[str, Any]:
         '''Returns the contents of the .json file in a dictionary format.'''
         content: dict[str, Any] = {}
-        with open(self.path, "r") as file:
-            content = json.load(file)
+        try:
+            with open(self.path, "r") as file:
+                content = json.load(file)
+        except json.decoder.JSONDecodeError:
+            self.logger.error(f"JSON file was empty, failed to read")
+
+            self.write(content)
         
         return content
 
     def write(self, data: dict[str, Any]) -> None:
         '''Writes data to the file.'''
         # only write, append does not work.
-        with open(self.path, "w") as file:
+        with tf.NamedTemporaryFile("w", delete=False) as file:
+            temp_file: str = file.name
+
             json.dump(data, file)
+            os.replace(temp_file, self.path)
+            self.logger.info(f"File {self._name} written")
     
     def insert(self, key: str, value: Any) -> dict[str, Any]:
         '''Inserts a single key-value pair into the structure.
@@ -326,10 +352,12 @@ class Reader:
         if not self._pathpath.exists():
             self._pathpath.touch()
             # need to initialize it with a empty data
-            with open(self.path, "w") as file:
+            with tf.NamedTemporaryFile("w", delete=False) as file:
                 file.write("{}")
 
-            self.logger.info(f"Created JSON file: {self.path}")
+                os.replace(file.name, self.path)
+
+            self.logger.info(f"JSON file did not exist, created JSON file: {self.path}")
         
     def _lower_keys(self, new_content: dict[str, Any] = None, content: dict[str, Any] = None):
         '''Recursively lowercases all the keys, if any are not lowercase. Used to normalize key usage.
@@ -358,19 +386,20 @@ class Reader:
         
         return new_content
     
-    def validate_defaults(self, data_to_check: dict[str, Any]):
+    def _validate_defaults(self, default_data: dict[str, Any]):
         '''Validates a JSON file for any incorrect values or missing keys from
         a given data dictionary. 
 
         If it is missing or it has an invalid value then it will correct the data.
         '''
         has_corrected: bool = False
-        for d_key, d_value in data_to_check.items():
+        for d_key, d_value in default_data.items():
             exists: bool = d_key in self._content
             if not exists or not isinstance(self._content[d_key], type(d_value)):
                 self._content[d_key] = d_value
 
                 if not exists:
+                    self.logger.warning(f"Missing default key {d_key}")
                     self.logger.info(f"Default key {d_key} added with value {d_value}")
                 elif not isinstance(self._content[d_key], type(d_value)):
                     self.logger.info(f"Incorrect default key {d_key} value given")
@@ -381,12 +410,48 @@ class Reader:
         if has_corrected:
             self.write(self._content)
     
+    def _validate_unupdatable_defaults(self, reader_data: dict[str, Any], default_data: dict[str, Any]):
+        '''Validates a JSON file that is not updatable, ensuring that the keys match
+        the dictionary values given 1:1.
+        
+        Unlike validate_defaults, this removes all extra keys and resets values to defaults
+        if any values are invalid. This does not check for missing default keys, in which case validate_defaults
+        is used.
+
+        It returns a new Reader dictionary data of corrected data, if any.
+        '''
+        new_data: dict[str, Any] = {}
+
+        for key, val in reader_data.items():
+            if key not in default_data:
+                self.logger.info(f"Found invalid key {key}")
+
+                self._update_reader_flag = True
+                continue
+
+            # the keys are guaranteed to exist here    
+            if not isinstance(val, type(default_data[key])):
+                self.logger.warning(f"Invalid key {key} found with invalid type {type(val)}, expected type: {type(default_data[key])}")
+
+                new_data[key] = default_data[key]
+                self.logger.info(f"Corrected key {key}")
+            else:
+                new_data[key] = val
+
+            if isinstance(val, dict):
+                temp_data: dict[str, Any] = self._validate_unupdatable_defaults(val, default_data[key])
+
+                new_data[key] = temp_data
+            
+        return new_data
+    
     def _update_only_check(self) -> dict[str, Any]:
         '''Checks if the Reader is update only before an insertion/deletion action.
+        If it is a test instance then this does not apply.
         
         It returns a response of an error message if it fails.
         '''
-        if self.update_only:
+        if self.update_only and not self._is_test:
             self.logger.info(f"Reader {self._name} attempted an insertion/deletion, it is not allowed")
             return utils.generate_response("error", message=f"Cannot insert or delete Reader {self._name}")
         
