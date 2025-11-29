@@ -33,6 +33,7 @@ export function onFileChange(
                 file: file, 
                 status: "none", 
                 fileType: res.fileType as FileType,
+                errMsg: undefined, // this gets updated once the backend call completes
             }
         ]);
 }
@@ -62,7 +63,7 @@ export async function uploadFile(
 
     // helper function for handling errors on a file
     const handleFileError = (msg: string, fileId: string) => {
-        toastError(msg);
+        toastError(`Failed file ${"file"}`);
 
         setFileArr(prev => prev.map(fileObj => {
             if(fileObj.id == fileId){
@@ -74,7 +75,7 @@ export async function uploadFile(
     }
 
     // by default it will assume true, it is modified inside the csv generation call.
-    let boolOut: boolean = true;
+    let uploadSuccess: boolean = true;
     if(fileArr.length == 0){
         toastError("No files were submitted.");
         return true;
@@ -107,6 +108,8 @@ export async function uploadFile(
     let uploadId: string = generateId();
     for(const csvObj of csvResponseArr){
         let status: FileStatus = "success";
+        let resMessage: string = "";
+
         try{
             const res: Response = await window.pywebview.api.generate_azure_csv(csvObj, uploadId);
             
@@ -116,20 +119,23 @@ export async function uploadFile(
                 toastError(res.message);
                 status = "error";
 
-                boolOut = false;
+                uploadSuccess = false;
             }
+
+            resMessage = res.message;
         }catch(error){
             if(error instanceof Error){
                 toastError(error.message);
                 status = "error";
 
-                boolOut = false;
+                resMessage = error.message;
+                uploadSuccess = false;
             }
         }
 
         setFileArr(prev => prev.map(p => {
             if(p.id == csvObj.id){
-                return {...p, status: status};
+                return {...p, status: status, msg: resMessage};
             } 
             
             return p;
@@ -140,7 +146,7 @@ export async function uploadFile(
         }
     }
 
-    return boolOut;
+    return uploadSuccess;
 }
 
 export function onDragDrop(event: DragEvent, 
