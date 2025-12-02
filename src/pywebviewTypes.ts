@@ -27,6 +27,7 @@ export type Formatting = {
 export type Response = {
     status: "success" | "error",
     message: string,
+    [key: string]: any,
 }
 
 // by default lowercase and numbers are enabled, it will not be
