@@ -2,6 +2,7 @@ from core.json_reader import Reader
 from core.parser import Parser
 from core.azure_writer import AzureWriter
 from support.types import GenerateCSVProps, ManualCSVProps, APISettings, Formatting, TemplateMap, Response, HeaderMap
+from support.types import Password
 from base64 import b64decode
 from io import BytesIO
 from logger import Log
@@ -441,5 +442,46 @@ class API:
 
         if res["status"] == "success":
             self.settings.write(self.settings.get_content())
+        
+        self.logger.debug(f"Update setting response: {res}")
+
+        return res
+    
+    def generate_password(self) -> Response:
+        '''Generates a random password based off of the settings and returns a response.
+
+        The password is always guaranteed to have one lowercase letter, one uppercase letter,
+        and one special character.
+        
+        The password is part of the `content` key of the Response.
+        '''
+        res: Response = utils.generate_response(message="Generated password", content="")
+
+        # if all else fails then grab the default values.
+        password_settings: Password = self.settings.get("password")
+
+        if password_settings is None:
+            self.logger.warning(f"Failed to get Password settings from the Settings Reader, it has been reset to its default values")
+
+            password_settings = DEFAULT_SETTINGS_MAP["password"]
+            self.settings.update("password", password_settings)
+
+            res["message"] += ", an error occurred while generating the password and has been reset to its default values"
+
+            update_res: Response = self.update_setting("password", DEFAULT_SETTINGS_MAP["password"])
+
+            if update_res["status"] == "error":
+                self.logger.error(f"Failed to update settings: {update_res}")
+
+                return utils.generate_response("error", message="Unknown failure has occurred, the issue has been logged", 
+                    content="ERROR_DO_NOT_USE")
+        
+        password: str = utils.generate_password(
+            password_settings["length"], 
+            use_punctuations=password_settings["use_punctuations"],
+            use_uppercase_letters=password_settings["use_uppercase"]
+        )
+
+        res["content"] = password
 
         return res
