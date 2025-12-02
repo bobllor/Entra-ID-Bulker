@@ -2,12 +2,13 @@ from core.json_reader import Reader
 from core.parser import Parser
 from core.azure_writer import AzureWriter
 from support.types import GenerateCSVProps, ManualCSVProps, APISettings, Formatting, TemplateMap, Response, HeaderMap
+from support.types import Password
 from base64 import b64decode
 from io import BytesIO
 from logger import Log
 from pathlib import Path
 from typing import Any, Literal, TypedDict
-from support.vars import DEFAULT_HEADER_MAP, DEFAULT_OPCO_MAP, DEFAULT_SETTINGS_MAP
+from support.vars import DEFAULT_SETTINGS_MAP
 import support.utils as utils
 import pandas as pd
 
@@ -76,7 +77,7 @@ class API:
                 The upload ID for each file. It is used to keep track of each file and write to the
                 correct file. This is only relevant if flatten CSV is enabled.
         '''
-        res: Response = utils.generate_response(message="Generated CSV")
+        res: Response = utils.generate_response(message="CSV generated")
         df: pd.DataFrame = None
 
         if isinstance(content, dict):
@@ -116,6 +117,13 @@ class API:
             upload_id = utils.get_id(divisor=2)
 
         parser: Parser = Parser(df)
+        base_len: int = parser.length
+
+        if base_len == 0:
+            res["status"] = "error"
+            res["message"] = "File is empty"
+            
+            return res
         
         # the user defined headers (values).
         # the key is the internal name, the value is the user defined columns.
@@ -133,14 +141,44 @@ class API:
 
         # maybe read this back? for now i want to keep the full name.
         #parser.apply(default_excel_columns["name"], func=utils.format_name)
+
+        # converting all values to a string to ensure no errors occur.
         parser.apply(excel_columns["opco"], func=lambda x: x.lower())
+        
+        dropped_name_rows: int = parser.drop_empty_rows(excel_columns["name"])
+        dropped_opco_rows: int = parser.drop_empty_rows(excel_columns["opco"])
+
+        dropped_rows: int = dropped_name_rows + dropped_opco_rows
+
+        new_len: int = parser.length
+
+        self.logger.debug(f"Dropped names: {dropped_name_rows}/{base_len}")
+        self.logger.debug(f"Dropped opcos: {dropped_opco_rows}/{base_len}")
+        self.logger.debug(f"Total dropped rows: {dropped_rows}/{base_len}")
+
+        if new_len == 0:
+            res["status"] = "error"
+            res["message"] = f"File is empty after validation ({dropped_rows}/{base_len} dropped rows), please correct the data"
+
+            return res
+
+        if dropped_rows > 0:
+            rows_str: str = "rows" if dropped_rows > 1 else "row"
+            res["message"] += f", dropped {dropped_rows}/{base_len} {rows_str} from file due to missing values"
+
+        # ensure only strings are being worked with here. 
+        parser.apply(excel_columns["name"], func=lambda x: str(x))
+        parser.apply(excel_columns["opco"], func=lambda x: str(x))
+
         excel_names: list[str] = parser.get_rows(excel_columns["name"])
+        opcos: list[str] = parser.get_rows(excel_columns["opco"])
+
+        self.logger.debug(f"Name DF columns: {excel_names}")
+        self.logger.debug(f"Opco DF columns: {opcos}")
 
         names: list[str] = [utils.format_name(name) for name in excel_names]
         full_names: list[str] = [utils.format_name(name, keep_full=True) for name in excel_names]
-        opcos: list[str] = parser.get_rows(excel_columns["opco"])
 
-        self.logger.debug(f"Opcos: {opcos}") 
         dupe_names: list[str] = utils.check_duplicate_names(names)
 
         # the mapping of the operating company to their domain name.
@@ -160,7 +198,14 @@ class API:
         writer.set_names(names)
         writer.set_block_sign_in(len(names), []) 
         writer.set_usernames(usernames)
-        writer.set_passwords([utils.generate_password(20) for _ in range(len(names))])
+
+        passwords: list[str] = []
+        for _ in range(len(names)):
+            password_res: Response = self.generate_password()
+
+            passwords.append(password_res["content"])
+        
+        writer.set_passwords(passwords)
 
         curr_date: str = utils.get_date()
 
@@ -202,6 +247,8 @@ class API:
                 self.update_setting("text", templates["text"][:1250], "template")
 
         # NOTE: any failures will require an update to the context in the frontend. 
+        self.logger.debug(f"Azure CSV generated: {res}")
+
         return res
     
     def generate_manual_csv(self, content: list[ManualCSVProps]) -> dict[str, str]:
@@ -245,7 +292,11 @@ class API:
             format_case=formatters["format_case"],
             format_style=formatters["format_style"],
         )
-        passwords: list[str] = [utils.generate_password() for _ in range(len(names))]
+        passwords: list[str] = []
+        for _ in range(len(names)):
+            password_res: Response = self.generate_password()
+
+            passwords.append(password_res["content"])
 
         writer: AzureWriter = AzureWriter(logger=self.logger)
 
@@ -297,7 +348,7 @@ class API:
             res["message"] = ", failed to generate template files"
         elif template_res["status"] == "success":
             # NOTE: this is appended to the final successful message
-            res["message"] = " and template files"
+            res["message"] = " and generated template files"
         
         return res
     
@@ -402,5 +453,48 @@ class API:
 
         if res["status"] == "success":
             self.settings.write(self.settings.get_content())
+        
+        self.logger.debug(f"Update setting response: {res}")
+
+        return res
+    
+    def generate_password(self) -> Response:
+        '''Generates a random password based off of the settings and returns a response. A password
+        will always be returned regardless of an error or not.
+
+        The password is always guaranteed to have one lowercase letter, one uppercase letter,
+        and one special character.
+        
+        The password is part of the `content` key of the Response.
+        '''
+        res: Response = utils.generate_response(message="Generated password", content="")
+
+        # if all else fails then grab the default values.
+        password_settings: Password = self.settings.get("password")
+
+        if password_settings is None:
+            self.logger.warning(f"Failed to get Password settings from the Settings Reader, it has been reset to its default values")
+
+            password_settings = DEFAULT_SETTINGS_MAP["password"]
+            self.settings.update("password", password_settings)
+
+            res["message"] += ", an error occurred while generating the password and has been reset to its default values"
+
+            update_res: Response = self.update_setting("password", DEFAULT_SETTINGS_MAP["password"])
+
+            if update_res["status"] == "error":
+                self.logger.error(f"Failed to update settings: {update_res}")
+
+                # catastrophic fail, will default back to default settings but still generate a password.
+                return utils.generate_response("error", message="Unknown failure has occurred, the issue has been logged", 
+                    content=utils.generate_password(DEFAULT_SETTINGS_MAP["password"]["length"]))
+        
+        password: str = utils.generate_password(
+            password_settings["length"], 
+            use_punctuations=password_settings["use_punctuations"],
+            use_uppercase_letters=password_settings["use_uppercase"]
+        )
+
+        res["content"] = password
 
         return res

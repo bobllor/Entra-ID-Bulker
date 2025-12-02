@@ -7,6 +7,7 @@ from backend.support.vars import DEFAULT_HEADER_MAP, DEFAULT_SETTINGS_MAP, AZURE
 from backend.support.types import ManualCSVProps, APISettings, Formatting, Response
 from io import BytesIO
 import string
+import numpy as np
 import pandas as pd
 import backend.support.utils as utils
 import tests.utils as ttils
@@ -87,6 +88,22 @@ def test_generate_csv_multiple_template(tmp_path: Path, api: API, df: pd.DataFra
     
     assert base_len == csv_count and base_len == template_folder_count and \
         template_count == base_row_len
+
+def test_generate_csv_empty_file(api: API, df: pd.DataFrame):
+    empty_df: pd.DataFrame = df.copy(deep=True).iloc[0:0]
+
+    res: Response = api.generate_azure_csv(empty_df)
+
+    assert res["status"] == "error" and "empty" in res["message"]
+
+def test_generate_csv_empty_validate_file(api: API, df: pd.DataFrame):
+    parser: Parser = Parser(df)
+
+    parser.apply(DEFAULT_HEADER_MAP["name"], func=lambda _: np.nan)
+
+    res: Response = api.generate_azure_csv(parser.get_df())
+
+    assert res["status"] == "error" and "is empty after validation" in res["message"]
 
 def test_generate_csv_dupe_names(tmp_path: Path, api: API, df: pd.DataFrame):
     dupe_name: str = "John Doe"
@@ -468,3 +485,39 @@ def test_get_content(api: API):
     data: dict[str, Any] = api.get_reader_content("opco")
 
     assert data == api.opco.get_content()
+
+def test_generate_password(api: API):
+    api.update_setting("use_punctuations", True, "password")
+
+    res_one: Response = api.generate_password()
+
+    upper_count: int = 0
+    for c in res_one["content"]:
+        if c in string.ascii_uppercase:
+            upper_count += 1
+
+    if res_one["status"] == "error":
+        raise AssertionError(f"Failed to generate password with punctuations: {res_one}")
+
+    api.update_setting("use_punctuations", False, "password")
+    api.update_setting("use_uppercase", True, "password")
+
+    res_two: Response = api.generate_password()
+
+    punctuation_count: int = 0
+    for c in res_two["content"]:
+        if c in string.punctuation:
+            punctuation_count += 1
+
+    default_pass_len: int = DEFAULT_SETTINGS_MAP["password"]["length"]
+
+    assert len(res_one["content"]) == default_pass_len and len(res_two["content"]) == default_pass_len \
+        and punctuation_count == 1 and upper_count == 1
+
+def test_generate_bad_password(api: API):
+    api.update_setting("password", None)
+
+    res: Response = api.generate_password()
+
+    assert res["status"] == "success" and "default values" in res["message"].lower() \
+        and len(res["content"]) == DEFAULT_SETTINGS_MAP["password"]["length"]

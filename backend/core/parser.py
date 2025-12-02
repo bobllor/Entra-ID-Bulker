@@ -57,10 +57,13 @@ class Parser:
         column = column.lower()
         self.df[column] = self.df[column].fillna(value)
     
-    def drop_empty_rows(self, col_name: str) -> None:
+    def drop_empty_rows(self, col_name: str) -> int:
         '''Drop rows if a row is empty or NaN based on rows from a given column name. 
         The DataFrame is modified in place.
+
+        It returns the amount of rows dropped, if any.
         '''
+        base_len: int = self.length
         bad_rows: list[int] = []
 
         for i, data in enumerate(self.get_rows(col_name)):
@@ -68,6 +71,10 @@ class Parser:
                 bad_rows.append(i)
         
         self.df.drop(index=bad_rows, axis=0, inplace=True)
+
+        new_length: int = self.length
+
+        return base_len - new_length
     
     def apply(self, col_name: str, *, func: Callable[[Any], Any], args: tuple = ()) -> None:
         '''Applies a function onto a column and replaces the column values in the DataFrame
@@ -171,3 +178,8 @@ class Parser:
             return util.generate_response(status='error', message=f'File is missing {column_str}: {", ".join(missing_columns)}')
 
         return util.generate_response(status='success', message=f"Found columns {','.join(found)}")
+
+    @property
+    def length(self) -> int:
+        '''The rows of the DataFrame.'''
+        return len(self.df)
