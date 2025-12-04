@@ -5,10 +5,10 @@ import { useSettingsContext } from "../../../context/SettingsContext";
 import SliderButton from "../../ui/SliderButton";
 import { setSetting } from "../functions";
 import SliderRange from "../../ui/SliderRange";
-import Button from "../../ui/Button";
 import { generatePassword } from "../../../pywebviewFunctions";
-import { FaClipboard } from "react-icons/fa";
+import { FaClipboard, FaSync } from "react-icons/fa";
 import { toastSuccess } from "../../../toastUtils";
+import { throttler } from "../../../utils";
 
 const toolTipText: string = "Password settings";
 const PARENT_KEY: string = "password";
@@ -18,7 +18,7 @@ export default function Password(): JSX.Element{
 
     const options: Array<OptionProps> = [
         {
-            label: "Generate password", 
+            label: "Generate a password", 
             element: <GeneratePassword />, 
             justify: "between"
         },
@@ -58,34 +58,44 @@ export default function Password(): JSX.Element{
     )
 }
 
+const iconStyle: string = "p-2 rounded-xl hover:bg-gray-400";
+const passwordThrottler = throttler(
+    (updaterFunc: (...args: any) => any) => generatePassword().then((pw) => updaterFunc(pw))
+);
+
 function GeneratePassword(): JSX.Element{
     const [password, setPassword] = useState<string>("");
 
     return (
         <div className="flex items-center justify-between w-full">
-            <div className={`${password == "" ? "opacity-0" : "opacity-100"} transition-all`}>
-                <div className="bg-white p-3 input-style rounded-2xl w-70 flex items-center
+            <div className={`transition-all`}>
+                <div className="bg-white p-2 input-style rounded-2xl w-95 flex items-center
                 justify-between">
                     <span>
                         {password}
                     </span>
-                    <span 
-                    className="p-2 rounded-xl hover:bg-gray-400"
-                    title="Copy to clipboard"
-                    onClick={() => {
-                        navigator.clipboard.writeText(password).then(() => {
-                            toastSuccess("Copied to clipboard")
-                        });
-                    }}>
-                        <FaClipboard size={18}/>
-                    </span>
+                    <div className="flex items-center">
+                        <span 
+                        className={iconStyle}
+                        title="Copy to clipboard"
+                        onClick={() => {
+                            if(password != ""){
+                                navigator.clipboard.writeText(password).then(() => {
+                                    toastSuccess("Copied to clipboard")
+                                });
+                            }
+                        }}>
+                            <FaClipboard size={18}/>
+                        </span>
+                        <span
+                        title="Generate password"
+                        className={iconStyle}
+                        onClick={() => passwordThrottler(setPassword)}>
+                            <FaSync size={18} />
+                        </span>
+                    </div>
                 </div>
             </div>
-            <Button text="Generate" type="button" func={() => {
-                generatePassword().then(pw => {
-                    setPassword(pw);
-                })
-            }}/>
         </div>
     )
 }
