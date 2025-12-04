@@ -1,15 +1,24 @@
 import { uploadFile } from "./utils"; 
 import { useFileContext } from "../../context/FileContext";
 import Button from "../ui/Button"
-import React from "react";
+import React, { useRef } from "react";
 import FileEntry from "./FileEntry";
 import { useSettingsContext } from "../../context/SettingsContext";
+import { throttler } from "../../utils";
 
 const widthStyle = "w-160";
 
 export default function UploadForm({inputFileRef, FileUpload, showDrop}){
     const { uploadedFiles, setUploadedFiles } = useFileContext();
     const { apiSettings, setUpdateSettings } = useSettingsContext();
+    
+    const uploadThrottle = useRef(throttler((e, uploadedFiles, setUploadFiles, flatten_csv, setUpdateSettings) => {
+        uploadFile(e, uploadedFiles, setUploadFiles, flatten_csv, setUpdateSettings).then((status) => {
+            if(!status){
+                setUpdateSettings(true);
+            }
+        });
+    }));
 
     return (
         <>
@@ -29,11 +38,11 @@ export default function UploadForm({inputFileRef, FileUpload, showDrop}){
                 </div>
                 <form 
                 className={`flex flex-col justify-center items-center gap-3 p-5 ${!showDrop && "z-2"}`}
-                onSubmit={(e) => uploadFile(e, uploadedFiles, setUploadedFiles, apiSettings.flatten_csv).then(status => {
-                    if(!status){
-                        setUpdateSettings(true);
-                    }
-                })}>
+                onSubmit={(e) => {
+                    e.preventDefault();
+
+                    uploadThrottle.current(e, uploadedFiles, setUploadedFiles, apiSettings.flatten_csv, setUpdateSettings);
+                }}>
                     <div>
                         <Button text={"Submit"} paddingX={10} paddingY={3} />
                     </div>
