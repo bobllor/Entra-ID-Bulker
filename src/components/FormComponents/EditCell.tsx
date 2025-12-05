@@ -1,13 +1,13 @@
-import { JSX, useEffect, useRef } from "react";
+import React, { JSX, useEffect, useRef } from "react";
 import { ManualData } from "./manualUtils/types";
 import toast from "react-hot-toast";
-import { toaster } from "../../toastUtils";
+import { toaster, toastError } from "../../toastUtils";
 import { FaTimes, FaCheck } from "react-icons/fa";
 
 const buttonClass: string = "hover:bg-gray-400 p-2 rounded-xl";
 
 /** Component of ManualTable that reveals an edit box for a selected cell. */
-export default function EditCell({id, stringVal, setEditCell, manData}: EditCellProps): JSX.Element{
+export default function EditCell({id, stringVal, setEditCell, manData, checkEmpty = false}: EditCellProps): JSX.Element{
     const inputRef = useRef<HTMLInputElement|null>(null);
     
     useEffect(() => {
@@ -34,7 +34,7 @@ export default function EditCell({id, stringVal, setEditCell, manData}: EditCell
                         const loweredInputVal: string = inputVal.toLowerCase().trim();
 
                         if(inputVal.trim() == ''){
-                            toast.error('Empty input for the Name field found.', {duration: 3000});
+                            toastError('Cannot have an empty value for the Name field');
                             return;
                         }
                         
@@ -85,7 +85,15 @@ export default function EditCell({id, stringVal, setEditCell, manData}: EditCell
                 }}/>
                 <div
                 className="flex gap-1">
-                    <span className={buttonClass}>
+                    <span 
+                    onClick={() => addManualEntry(inputRef, checkEmpty).then(
+                        (status) => {
+                            if(status){
+                                setEditCell('');
+                            }
+                        })
+                    }
+                    className={buttonClass}>
                         <FaCheck color="green" />
                     </span>
                     <span
@@ -103,10 +111,29 @@ type EditCellProps = {
     id: string,
     stringVal: string,
     setEditCell: React.Dispatch<React.SetStateAction<string>>,
-    manData: ManDataProps
+    manData: ManDataProps,
+    checkEmpty?: boolean,
 }
 
 type ManDataProps = {
     manualData: Array<ManualData>
     setManualData: React.Dispatch<React.SetStateAction<Array<ManualData>>>
+}
+
+async function addManualEntry(inputRef: React.RefObject<HTMLInputElement|null>, checkEmpty: boolean): Promise<boolean>{
+    if(inputRef.current == null){
+        return false;
+    }
+
+    const value: string = inputRef.current.value;
+    
+    if(value == "" && checkEmpty){
+        toastError("Cannot have empty value");
+    
+        return false;
+    }
+
+    console.log(value);
+
+    return true;
 }
