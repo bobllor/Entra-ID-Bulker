@@ -55,7 +55,7 @@ export async function addOpcoEntry(
             }
 
             // validation will not allow this to be empty.
-            const value: string = element.value;
+            const value: string = element.value.replaceAll("@", "");
             const elementName: string = element.getAttribute("name")!;
 
             if(elementName == keyName){
