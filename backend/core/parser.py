@@ -1,8 +1,5 @@
 from typing import Any, Callable
-from support.types import Response, HeaderMap
-from copy import deepcopy
 import pandas as pd
-import support.utils as util
 
 class Parser:
     def __init__(self, df: pd.DataFrame):
