@@ -2,7 +2,7 @@ import React, { JSX, useState, useRef } from "react";
 import { OpcoMap, ReaderType } from "../types";
 import { useOpcoInit, useUpdateBaseSetOpco } from "../hooks";
 import { addOpcoEntry } from "../functions";
-import { compareObjects } from "../../../utils";
+import { compareObjects, throttler } from "../../../utils";
 import OptionBase from "./OptionBase";
 import OpcoRow from "./OpcoRow";
 import { toastError } from "../../../toastUtils";
@@ -15,6 +15,10 @@ import Loading from "../../ui/Loading";
 const orgKeyName: string = "Organization";
 const tooltipText: string = "Mapping of an organization to a domain name";
 const inputLabel: InputLabelProps = {keyOpco: orgKeyName, valueOpco: "Domain"};
+
+const throttleOpcoEntry = throttler(
+    (event: React.FormEvent<HTMLFormElement>, optionUpdater: (...any: any) => any) => 
+        addOpcoEntry(event, optionUpdater));
 
 export default function OpcoMapping(): JSX.Element{
     const [opcoOptions, setOpcoOptions] = useState<Array<OpcoMap>>([]);
@@ -64,12 +68,12 @@ export default function OpcoMapping(): JSX.Element{
                                     return;
                                 }
 
-                                addOpcoEntry(e, setOpcoOptions).then((status) => {
+                                throttleOpcoEntry(addOpcoEntry(e, setOpcoOptions).then((status) => {
                                     if(status){
                                         setUpdateBaseRef(true);
                                         setInputData(prev => ({...prev, keyOpco: "", valueOpco: ""}));
                                     }
-                                });
+                                }));
                             }
                         }>
                         {/* The opco submission entry */}
