@@ -405,13 +405,11 @@ class API:
 
             passwords.append(password_res["content"])
 
-        writer: AzureWriter = AzureWriter(logger=self.logger, project_root=self._project_root)
-
-        writer.set_full_names(full_names)
-        writer.set_usernames(usernames)
-        writer.set_passwords(passwords)
-        writer.set_block_sign_in(len(names), [])
-        writer.set_names(names)
+        writer: AzureWriter = self._get_azure_writer(
+            full_names=full_names,
+            usernames=usernames,
+            names=names
+        )
 
         curr_date: str = utils.get_date()
         uid: str = utils.get_id()
@@ -620,7 +618,8 @@ class API:
         password: str = utils.generate_password(
             password_settings["length"], 
             use_punctuations=password_settings["use_punctuations"],
-            use_uppercase_letters=password_settings["use_uppercase"]
+            use_uppercase_letters=password_settings["use_uppercase"],
+            use_numbers=password_settings["use_numbers"],
         )
 
         res["content"] = password
