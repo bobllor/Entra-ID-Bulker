@@ -63,7 +63,6 @@ class Reader:
         # used for validating unupdatable defaults
         self._update_reader_flag: bool = False
         if defaults:
-            self.logger.info(f"Validating {self._name}")
             self._validate_defaults(defaults)
 
             if self.update_only:
