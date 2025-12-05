@@ -138,10 +138,12 @@ class API:
         # the key is the internal name, the value is the user defined columns.
         # however there are only two required keys: name and opco.
         excel_columns: HeaderMap = self.excel.get_content()
+        settings: APISettings = self.settings.get_content()
 
-        self.logger.debug(f"Headers: {self.get_reader_content('excel')}")
+        self.logger.debug(f"Headers: {excel_columns}")
         validate_dict: Response = parser.validate(
-            default_headers=self.get_reader_content("excel")
+            default_headers=self.get_reader_content("excel"),
+            two_name_column_support=settings["two_name_column_support"],
         )
 
         if validate_dict["status"] == "error":
