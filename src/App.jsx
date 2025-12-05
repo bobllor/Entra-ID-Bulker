@@ -13,6 +13,7 @@ import OpcoMapping from "./components/SettingsComponents/OptionsComponents/OpcoM
 import TextForm from "./components/SettingsComponents/OptionsComponents/TextForm";
 import { FaCog } from "react-icons/fa";
 import Password from "./components/SettingsComponents/OptionsComponents/Password";
+import { useDisableShortcuts } from "./hooks";
 
 const fullPageStyle = 'h-screen w-screen flex flex-col justify-center items-center overflow-hidden relative p-3'
 
@@ -32,6 +33,8 @@ export default function App() {
       setShowSetting(true);
     }
   }, [location])
+
+  useDisableShortcuts();
 
   return (
     <> 

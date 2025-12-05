@@ -48,3 +48,22 @@ export function useDismissRoute(
         }
     }, [])
 }
+
+/**
+ * Disables certain shortcut keys on the application.
+ */
+export function useDisableShortcuts(){
+    useEffect(() => {
+        window.addEventListener("keydown", (event) => {
+            const keyValue: string = event.key;
+            
+            if(event.ctrlKey){
+                switch(keyValue){
+                    default:
+                        event.preventDefault();
+                        break;
+                }
+            }
+        })
+    }, [])
+}
