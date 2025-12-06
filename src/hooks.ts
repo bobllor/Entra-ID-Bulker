@@ -56,12 +56,15 @@ export function useDisableShortcuts(){
     useEffect(() => {
         window.addEventListener("keydown", (event) => {
             const keyValue: string = event.key;
+
+            const allowedKeys = new Set<string>([
+                "Backspace", "a", "c", "v", 
+                "ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown",
+            ]);
             
             if(event.ctrlKey){
-                switch(keyValue){
-                    default:
-                        event.preventDefault();
-                        break;
+                if(!allowedKeys.has(keyValue)){
+                    event.preventDefault();
                 }
             }
         })
