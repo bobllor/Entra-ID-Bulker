@@ -6,15 +6,18 @@ export default function TableData({id, data, edit, maxLength, manData, select}: 
     return (
         <>
             <td
-            onClick={() => select.setSelectedCell(id + data)}
-            onDoubleClick={() => edit.setEditCell(id + data)}
-            className={`px-4 py-2 text-center text-wrap min-w-50 max-w-50 text-ellipsis overflow-x-hidden
+            onClick={() => edit.editCell == "" && select.setSelectedCell(id + data)}
+            onDoubleClick={() => {
+                select.setSelectedCell(id + data);
+                edit.setEditCell(id + data);
+            }}
+            className={`px-4 py-2 text-center text-wrap min-w-50 max-w-50 overflow-x-hidden
             ${select.selectedCell == id + data 
                 ? "bg-gray-400 outline-blue-400/40 outline-1 z-1"
                 : edit.editCell == "" && "hover:bg-gray-400/40"
             }`}
             title={data.length > maxLength ? data : ""}>
-                {data}
+                {data.length > maxLength ? data.slice(0, 20) + "..." : data}
                 {id + data == edit.editCell && 
                 <EditCell id={id} stringVal={data} setEditCell={edit.setEditCell} manData={manData} 
                     checkEmpty={edit.checkEmpty ? edit.checkEmpty : false}/>
