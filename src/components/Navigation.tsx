@@ -46,7 +46,7 @@ export default function Navigation({formState}: {formState: FormStateProps}
                     {obj.icon}
                   </span>
                 }
-                <div className="flex justify-start items-center w-full">
+                <div className="flex justify-start items-center w-full select-none">
                   {obj.label}
                 </div>
               </div>
