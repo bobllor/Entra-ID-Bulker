@@ -34,7 +34,7 @@ export default function EditCell({id, stringVal, setEditCell, manData, checkEmpt
                         if(inputVal.trim() == stringVal){
                             setEditCell('');
                         }else{
-                            addManualEntry(inputRef, id, manData, checkEmpty).then(status => {
+                            editManualEntry(inputRef, id, manData, checkEmpty).then(status => {
                                 if(status){
                                     setEditCell("");
                                 }
@@ -45,7 +45,7 @@ export default function EditCell({id, stringVal, setEditCell, manData, checkEmpt
                 <div
                 className="flex gap-1">
                     <span 
-                    onClick={() => addManualEntry(inputRef, id, manData, checkEmpty).then(
+                    onClick={() => editManualEntry(inputRef, id, manData, checkEmpty).then(
                         (status) => {
                             if(status){
                                 setEditCell('');
@@ -80,7 +80,7 @@ type ManDataProps = {
 }
 
 /**
- * Adds a manual entry to the manual data.
+ * Edits an existing manual entry and updates the state.
  * @param inputRef The ref object of the input element.
  * @param cellId The ID of the current component.
  * @param manData The manual data state and function object.
@@ -88,7 +88,7 @@ type ManDataProps = {
  * This is also used to determine if the editing cell is the Name field or the Organization (opco) field.
  * @returns A boolean Promise.
  */
-async function addManualEntry(inputRef: React.RefObject<HTMLInputElement|null>, cellId: string, manData: ManDataProps, checkEmpty: boolean): Promise<boolean>{
+async function editManualEntry(inputRef: React.RefObject<HTMLInputElement|null>, cellId: string, manData: ManDataProps, checkEmpty: boolean): Promise<boolean>{
     if(inputRef.current == null){
         return false;
     }
